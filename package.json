@@ -1,0 +1,43 @@
+{
+  "name": "aamin",
+  "version": "1.0.0",
+  "private": true,
+  "license": "0BSD",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node --import tsx dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "send-test": "tsx scripts/send-test.ts",
+    "post-welcome": "tsx scripts/post-welcome.ts",
+    "format": "prettier --write \"**/*.{ts,js,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,json,md,yml,yaml}\"",
+    "check": "pnpm typecheck && pnpm test"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.0",
+    "grammy": "^1.42.0",
+    "node-cron": "^4.2.1",
+    "tsx": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "@types/node-cron": "^3.0.11",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.6",
+    "cross-env": "^7.0.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

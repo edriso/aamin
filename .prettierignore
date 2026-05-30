@@ -1,0 +1,10 @@
+dist/
+node_modules/
+pnpm-lock.yaml
+.cache/
+.claude/
+
+# Prettier miscounts Arabic glyph widths in markdown and would misalign
+# the hand-aligned RTL lines (renders identically on GitHub either way).
+# These docs are hand-formatted; let them be.
+README.md

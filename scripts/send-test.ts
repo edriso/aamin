@@ -16,7 +16,7 @@
  * the bot to be a channel admin with "Post messages" + "Delete messages".
  */
 import { Bot, type Context } from 'grammy';
-import { config } from '../src/config';
+import { config, channelIdHint } from '../src/config';
 import { runSchedule } from '../src/scheduler';
 import { schedules } from '../src/schedules';
 import { initState } from '../src/lib/state';
@@ -40,6 +40,8 @@ async function main() {
       '  CHANNEL_CHAT_ID must be numeric (e.g. -1001234567890) or @username, NOT an invite-link slug (+abc...).',
     );
     console.error('  Also check BOT_TOKEN is valid and the bot is a member of the channel.');
+    const hint = channelIdHint(config.channelChatId);
+    if (hint) console.error('  Hint:', hint);
     console.error('  Underlying:', String(err));
     process.exit(1);
   }

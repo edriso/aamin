@@ -13,7 +13,7 @@
  * to fail fast on a bad token / chat id.
  */
 import { Bot, type Context } from 'grammy';
-import { config } from '../src/config';
+import { config, channelIdHint } from '../src/config';
 import { welcomeMessage } from '../src/content/welcome';
 import { postToChannel } from '../src/lib/post';
 
@@ -29,6 +29,8 @@ async function main() {
       '  CHANNEL_CHAT_ID must be numeric (e.g. -1001234567890) or @username, NOT an invite-link slug (+abc...).',
     );
     console.error('  Also check BOT_TOKEN is valid and the bot is a member of the channel.');
+    const hint = channelIdHint(config.channelChatId);
+    if (hint) console.error('  Hint:', hint);
     console.error('  Underlying:', String(err));
     process.exit(1);
   }

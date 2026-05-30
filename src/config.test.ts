@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { channelUrlFrom, validateTimezone } from './config';
+import { channelUrlFrom, validateTimezone, channelIdHint } from './config';
 
 describe('channelUrlFrom', () => {
   it('builds a t.me link from an @username', () => {
@@ -36,5 +36,28 @@ describe('validateTimezone', () => {
   it('throws on an invalid timezone name', () => {
     expect(() => validateTimezone('Mars/Phobos')).toThrow(/Invalid IANA timezone/);
     expect(() => validateTimezone('not-a-tz')).toThrow(/Invalid IANA timezone/);
+  });
+});
+
+describe('channelIdHint', () => {
+  it('returns null for a correct -100... id or @username', () => {
+    expect(channelIdHint('-1003723418314')).toBeNull();
+    expect(channelIdHint('@mychannel')).toBeNull();
+  });
+
+  it('catches the common missing-leading-minus mistake', () => {
+    // This is exactly the real-world bug: 1003723418314 instead of -100...
+    const hint = channelIdHint('1003723418314');
+    expect(hint).toContain('-1003723418314');
+    expect(hint).toMatch(/missing the leading/);
+  });
+
+  it('flags an invite link or slug', () => {
+    expect(channelIdHint('https://t.me/+oPN5XjvvARNjYzc0')).toMatch(/invite link/);
+    expect(channelIdHint('+oPN5XjvvARNjYzc0')).toMatch(/invite link/);
+  });
+
+  it('flags other numeric ids that are not channel-shaped', () => {
+    expect(channelIdHint('12345')).toMatch(/does not look like a channel id/);
   });
 });

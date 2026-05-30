@@ -48,6 +48,28 @@ export function channelUrlFrom(raw: string): string | null {
   return m ? `https://t.me/${m[1]}` : null;
 }
 
+/**
+ * If CHANNEL_CHAT_ID looks malformed, return a one-line hint with the
+ * likely fix; otherwise null. A correct value is "@username" or the
+ * numeric "-100..." id. The most common mistakes are dropping the leading
+ * minus and pasting a t.me invite link. Used by the scripts' preflight
+ * diagnostics so a bad id fails with an obvious cause. Exported for tests.
+ */
+export function channelIdHint(raw: string): string | null {
+  const id = raw.trim();
+  if (id.startsWith('@') || /^-100\d+$/.test(id)) return null; // looks right
+  if (/^100\d+$/.test(id)) {
+    return `"${id}" is missing the leading "-". Use "-${id}".`;
+  }
+  if (/^(https?:\/\/)?t\.me\//i.test(id) || id.startsWith('+')) {
+    return `"${id}" looks like an invite link/slug, which Telegram rejects here. Use the numeric -100... id or @username, and put the share link in CHANNEL_PUBLIC_URL instead.`;
+  }
+  if (/^-?\d+$/.test(id)) {
+    return `"${id}" does not look like a channel id. A channel id looks like -100..., e.g. -100${id.replace(/^-/, '')}.`;
+  }
+  return null;
+}
+
 const channelChatId = requireEnv('CHANNEL_CHAT_ID').trim();
 // Optional, cosmetic. Kept separate from CHANNEL_CHAT_ID so posting can
 // use the stable numeric id while the /start link comes from here; falls

@@ -11,13 +11,14 @@ import {
 } from './lib/state';
 
 /**
- * runSchedule must dispatch on `kind`: messages go through sendMessage,
- * polls go through sendPoll, and empty content posts nothing. No network.
+ * runSchedule must dispatch on `kind` (message -> sendMessage, poll ->
+ * sendPoll) and implement the ring buffer: a tracked schedule posts the
+ * new copy, then deletes older ones beyond `keepLast`. A failed post
+ * leaves state untouched; a failed delete still advances state. No network.
  *
- * It must also implement replace-on-next-fire: a successful message post
- * updates the state pointer to the new message_id and deletes the
- * previously-tracked one. A failed post leaves state untouched so the
- * next fire can still clean up.
+ * The mechanics tests use SYNTHETIC schedule defs so they stay valid no
+ * matter how the real content table in schedules.ts changes. A separate
+ * block then guards the real schedules' keepLast wiring.
  */
 
 function fakeBot() {
@@ -30,8 +31,14 @@ function fakeBot() {
   return { bot, sendMessage, sendPoll, deleteMessage };
 }
 
-// Wipe the in-memory pointer store between cases so one test's posts
-// can never trigger the next test's "delete previous" path.
+// A tracked message schedule (no keepLast => message default 1).
+const trackedMsg: ScheduleDef = {
+  name: 'tracked_msg',
+  kind: 'message',
+  cron: '0 3 * * *',
+  content: 'hello',
+};
+
 beforeEach(() => {
   resetState();
 });
@@ -73,25 +80,21 @@ describe('runSchedule dispatch', () => {
 
   it('propagates a null result when the send fails', async () => {
     const sendMessage = vi.fn().mockRejectedValue(new Error('boom'));
-    const sendPoll = vi.fn();
-    const deleteMessage = vi.fn();
     const bot = {
-      api: { sendMessage, sendPoll, deleteMessage },
+      api: { sendMessage, sendPoll: vi.fn(), deleteMessage: vi.fn() },
     } as unknown as Bot<Context>;
-    const def = findSchedule('morning_reminder')!;
-    await expect(runSchedule(bot, def)).resolves.toBeNull();
+    await expect(runSchedule(bot, trackedMsg)).resolves.toBeNull();
   });
 });
 
-describe('runSchedule replace-on-next-fire (messages)', () => {
-  it('first fire posts and tracks the message_id but does NOT delete anything', async () => {
+describe('runSchedule replace-on-next-fire (keepLast = 1 message)', () => {
+  it('first fire posts and tracks the id but does NOT delete anything', async () => {
     const { bot, sendMessage, deleteMessage } = fakeBot();
-    const def = findSchedule('morning_reminder')!;
-    const id = await runSchedule(bot, def);
+    const id = await runSchedule(bot, trackedMsg);
     expect(id).toBe(11);
     expect(sendMessage).toHaveBeenCalledTimes(1);
     expect(deleteMessage).not.toHaveBeenCalled();
-    expect(getLastMessageId('morning_reminder')).toBe(11);
+    expect(getLastMessageId('tracked_msg')).toBe(11);
   });
 
   it('second fire posts the new copy and deletes the previously-tracked one', async () => {
@@ -103,15 +106,14 @@ describe('runSchedule replace-on-next-fire (messages)', () => {
     const bot = {
       api: { sendMessage, sendPoll: vi.fn(), deleteMessage },
     } as unknown as Bot<Context>;
-    const def = findSchedule('morning_reminder')!;
 
-    await runSchedule(bot, def);
-    await runSchedule(bot, def);
+    await runSchedule(bot, trackedMsg);
+    await runSchedule(bot, trackedMsg);
 
     expect(sendMessage).toHaveBeenCalledTimes(2);
     expect(deleteMessage).toHaveBeenCalledTimes(1);
     expect(deleteMessage.mock.calls[0][1]).toBe(101);
-    expect(getLastMessageId('morning_reminder')).toBe(102);
+    expect(getLastMessageId('tracked_msg')).toBe(102);
 
     // Post must happen before delete, never the other way around.
     const order =
@@ -120,35 +122,32 @@ describe('runSchedule replace-on-next-fire (messages)', () => {
   });
 
   it('a failed post leaves the previous pointer intact for next time', async () => {
-    await setLastMessageId('friday_family', 555);
-
+    await setLastMessageId('tracked_msg', 555);
     const sendMessage = vi.fn().mockRejectedValue(new Error('429'));
     const deleteMessage = vi.fn();
     const bot = {
       api: { sendMessage, sendPoll: vi.fn(), deleteMessage },
     } as unknown as Bot<Context>;
-    const def = findSchedule('friday_family')!;
 
-    await expect(runSchedule(bot, def)).resolves.toBeNull();
+    await expect(runSchedule(bot, trackedMsg)).resolves.toBeNull();
 
     expect(deleteMessage).not.toHaveBeenCalled();
-    expect(getLastMessageId('friday_family')).toBe(555);
+    expect(getLastMessageId('tracked_msg')).toBe(555);
   });
 
   it('a failed delete still advances the pointer (best-effort cleanup)', async () => {
-    await setLastMessageId('morning_reminder', 700);
+    await setLastMessageId('tracked_msg', 700);
     const sendMessage = vi.fn().mockResolvedValue({ message_id: 701 });
     const deleteMessage = vi.fn().mockRejectedValue(new Error('400 message to delete not found'));
     const bot = {
       api: { sendMessage, sendPoll: vi.fn(), deleteMessage },
     } as unknown as Bot<Context>;
-    const def = findSchedule('morning_reminder')!;
 
-    const id = await runSchedule(bot, def);
+    const id = await runSchedule(bot, trackedMsg);
 
     expect(id).toBe(701);
     expect(deleteMessage).toHaveBeenCalledWith('@test_channel', 700);
-    expect(getLastMessageId('morning_reminder')).toBe(701);
+    expect(getLastMessageId('tracked_msg')).toBe(701);
   });
 
   it('a skipIf guard posts nothing and leaves the ring buffer untouched', async () => {
@@ -170,34 +169,67 @@ describe('runSchedule replace-on-next-fire (messages)', () => {
   });
 
   it('different schedules track their pointers independently', async () => {
+    const a: ScheduleDef = { name: 'a', kind: 'message', cron: '0 3 * * *', content: 'x' };
+    const b: ScheduleDef = { name: 'b', kind: 'message', cron: '0 3 * * *', content: 'y' };
     const sendMessage = vi
       .fn()
-      .mockResolvedValueOnce({ message_id: 1 }) // morning
-      .mockResolvedValueOnce({ message_id: 2 }) // friday
-      .mockResolvedValueOnce({ message_id: 3 }) // morning again
-      .mockResolvedValueOnce({ message_id: 4 }); // friday again
+      .mockResolvedValueOnce({ message_id: 1 }) // a
+      .mockResolvedValueOnce({ message_id: 2 }) // b
+      .mockResolvedValueOnce({ message_id: 3 }) // a again
+      .mockResolvedValueOnce({ message_id: 4 }); // b again
     const deleteMessage = vi.fn().mockResolvedValue(true);
     const bot = {
       api: { sendMessage, sendPoll: vi.fn(), deleteMessage },
     } as unknown as Bot<Context>;
-    const morning = findSchedule('morning_reminder')!;
-    const friday = findSchedule('friday_family')!;
 
-    await runSchedule(bot, morning);
-    await runSchedule(bot, friday);
-    await runSchedule(bot, morning);
-    await runSchedule(bot, friday);
+    await runSchedule(bot, a);
+    await runSchedule(bot, b);
+    await runSchedule(bot, a);
+    await runSchedule(bot, b);
 
     expect(deleteMessage).toHaveBeenCalledTimes(2);
     const deletedIds = deleteMessage.mock.calls.map((c) => c[1]).sort();
     expect(deletedIds).toEqual([1, 2]);
-    expect(getLastMessageId('morning_reminder')).toBe(3);
-    expect(getLastMessageId('friday_family')).toBe(4);
+    expect(getLastMessageId('a')).toBe(3);
+    expect(getLastMessageId('b')).toBe(4);
   });
 });
 
-describe('evening_poll is wired for replace-on-next-fire (keepLast=1)', () => {
-  it('keeps exactly one live poll: the new one posts, then the old one is deleted', async () => {
+describe('runSchedule keepLast = 0 (keep everything, never delete)', () => {
+  it('a keepLast:0 message posts every time and is never tracked or deleted', async () => {
+    const { bot, sendMessage, deleteMessage } = fakeBot();
+    const keepAll: ScheduleDef = {
+      name: 'keep_all',
+      kind: 'message',
+      cron: '0 3 * * *',
+      content: 'x',
+      keepLast: 0,
+    };
+    await runSchedule(bot, keepAll);
+    await runSchedule(bot, keepAll);
+    await runSchedule(bot, keepAll);
+
+    expect(sendMessage).toHaveBeenCalledTimes(3);
+    expect(deleteMessage).not.toHaveBeenCalled();
+    expect(getLastMessageId('keep_all')).toBeUndefined();
+  });
+});
+
+describe('real schedule table is wired as intended', () => {
+  it('morning_reminder keeps every tip (keepLast 0): no tracking, no delete', async () => {
+    const { bot, sendMessage, deleteMessage } = fakeBot();
+    const def = findSchedule('morning_reminder')!;
+    expect(def.keepLast).toBe(0);
+
+    await runSchedule(bot, def);
+    await runSchedule(bot, def);
+
+    expect(sendMessage).toHaveBeenCalledTimes(2);
+    expect(deleteMessage).not.toHaveBeenCalled();
+    expect(getLastMessageId('morning_reminder')).toBeUndefined();
+  });
+
+  it('evening_poll replaces itself daily (keepLast 1)', async () => {
     const sendPoll = vi
       .fn()
       .mockResolvedValueOnce({ message_id: 9001 })
@@ -215,21 +247,5 @@ describe('evening_poll is wired for replace-on-next-fire (keepLast=1)', () => {
     expect(deleteMessage).toHaveBeenCalledTimes(1);
     expect(deleteMessage.mock.calls[0][1]).toBe(9001);
     expect(getMessageIds('evening_poll')).toEqual([9002]);
-  });
-
-  it('a poll WITHOUT keepLast is never tracked (historic default)', async () => {
-    const { bot, sendPoll, deleteMessage } = fakeBot();
-    const untrackedPoll: ScheduleDef = {
-      name: 'untracked_poll',
-      kind: 'poll',
-      cron: '0 3 * * *',
-      poll: { question: 'q', options: ['a', 'b'] },
-    };
-    await runSchedule(bot, untrackedPoll);
-    await runSchedule(bot, untrackedPoll);
-
-    expect(sendPoll).toHaveBeenCalledTimes(2);
-    expect(deleteMessage).not.toHaveBeenCalled();
-    expect(getLastMessageId('untracked_poll')).toBeUndefined();
   });
 });

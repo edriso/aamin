@@ -27,10 +27,17 @@ export const schedules: ScheduleDef[] = [
     kind: 'message',
     // 07:00 Cairo: a calm start to the day, before school/work rush.
     cron: '0 7 * * *',
-    // Array form: one gentle tip is picked at random per fire so the
-    // morning feels fresh (see lib/pick.ts and content/morningReminders.ts).
     content: morningReminders,
-    description: 'تذكيرٌ تربويٌّ صباحيّ (يُختار عشوائيًّا)، كل يوم 7:00 ص.',
+    // Deterministic day-of-year rotation: the same tip on a given date,
+    // never the same tip two days running, and the whole pool is shown
+    // before any repeat (see lib/pick.ts pickForDay).
+    selection: 'daily',
+    // Keep every tip live (do NOT replace-on-next-fire). Each morning tip
+    // is unique, evergreen content, so the channel grows a browsable,
+    // shareable library instead of throwing yesterday's away. Only the
+    // identical daily poll and weekly Friday message get replaced.
+    keepLast: 0,
+    description: 'تذكيرٌ تربويٌّ صباحيّ (بالتناوب اليوميّ، لا يتكرّر تذكير الأمس)، كل يوم 7:00 ص.',
   },
   {
     name: 'friday_family',
@@ -38,6 +45,9 @@ export const schedules: ScheduleDef[] = [
     // 09:00 Cairo Friday: start of the weekend in most Arab countries.
     cron: '0 9 * * 5',
     content: fridayFamily,
+    // No keepLast set => message default 1 (replace-on-next-fire). The
+    // Friday message is the same each week, so we keep one live copy
+    // instead of stacking 52 identical posts a year.
     description: 'وقفةُ يوم العائلة (وقتٌ للأبناء + سننُ الجمعة)، الجمعة 9:00 ص.',
   },
   {

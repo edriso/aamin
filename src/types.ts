@@ -51,11 +51,20 @@ interface BaseSchedule {
   skipIf?: (now: Date) => boolean;
 }
 
-/** Posts a text message. `content` may be a fixed string or, if an
- *  array, one entry is picked at random per fire (see lib/pick.ts). */
+/** Posts a text message. `content` may be a fixed string or an array. */
 export interface MessageSchedule extends BaseSchedule {
   kind: 'message';
   content: string | readonly string[];
+  /**
+   * How an array `content` is chosen each fire (ignored for a fixed
+   * string):
+   *   - 'random' (default): one entry at random (lib/pick.ts pickContent).
+   *   - 'daily': deterministic day-of-year rotation (pickForDay), so the
+   *     same calendar day always shows the same entry, two consecutive
+   *     days never repeat, and the whole pool is covered before any
+   *     repeat. Restart-safe (no state). Used by the morning reminder.
+   */
+  selection?: 'random' | 'daily';
 }
 
 /** Sends one anonymous poll. `poll` may be a fixed spec or a factory

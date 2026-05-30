@@ -2,7 +2,7 @@ import cron, { type ScheduledTask } from 'node-cron';
 import type { Bot, Context } from 'grammy';
 import { schedules } from './schedules';
 import type { ScheduleDef } from './types';
-import { pickContent } from './lib/pick';
+import { pickContent, pickForDay } from './lib/pick';
 import { postToChannel, sendPollToChannel, deleteChannelMessage } from './lib/post';
 import { logger } from './lib/logger';
 import { config } from './config';
@@ -71,7 +71,10 @@ async function sendForKind(bot: Bot<Context>, def: ScheduleDef): Promise<number 
     const spec = typeof def.poll === 'function' ? def.poll() : def.poll;
     return sendPollToChannel(bot, spec, { scheduleName: def.name });
   }
-  const text = pickContent(def.content);
+  const text =
+    def.selection === 'daily'
+      ? pickForDay(def.content, new Date(), config.timezone)
+      : pickContent(def.content);
   if (!text) {
     logger.warn('Schedule has no content to post, skipping', { name: def.name });
     return null;

@@ -17,10 +17,13 @@ easy English.
 
 ## What it posts (all times in TZ_NAME, default Africa/Cairo)
 
-- `morning_reminder` (message, daily 07:00): one gentle parenting tip,
-  picked at random from `src/content/morningReminders.ts`.
+- `morning_reminder` (message, daily 07:00): one gentle parenting tip from
+  `src/content/morningReminders.ts`, chosen by deterministic daily
+  rotation (`selection: 'daily'`, no consecutive repeats). `keepLast: 0`
+  so every unique tip is kept as a growing library, never deleted.
 - `friday_family` (message, Friday 09:00): a weekly family-time nudge
-  plus a touch of Friday sunnah, `src/content/fridayFamily.ts`.
+  plus a touch of Friday sunnah, `src/content/fridayFamily.ts`. Default
+  `keepLast: 1` (the message is identical weekly, so one live copy).
 - `evening_poll` (poll, daily 21:00): anonymous, multi-answer self-review,
   built by `buildParentingPoll()` in `src/content/poll.ts`. `keepLast: 1`
   so only one live poll exists at a time. The weekend (Fri/Sat) adds a
@@ -50,8 +53,10 @@ easy English.
   2..10 options, each <=98 (we leave 2 chars of headroom for the bidi
   isolate). Keep the emoji at the END of each option (a leading emoji
   collides with the vote percentage).
-- The morning pool uses the random-array content path (`pickContent`).
-  Keep the pool large enough (>=28) to feel fresh; a test asserts this.
+- The morning pool rotates deterministically by day-of-year
+  (`pickForDay`), so a follower never sees yesterday's tip again today and
+  the whole pool is covered before any repeat. Keep the pool large enough
+  (>=28); a test asserts this and that consecutive days never collide.
 
 ## Commands
 

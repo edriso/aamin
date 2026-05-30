@@ -34,6 +34,15 @@ describe('schedules table', () => {
     expect(poll?.keepLast).toBe(1);
   });
 
+  it('the morning reminder keeps every tip (keepLast 0) and rotates daily', () => {
+    const morning = findSchedule('morning_reminder');
+    expect(morning?.kind).toBe('message');
+    // keepLast 0 => unique tips are never deleted (a growing library).
+    expect(morning?.keepLast).toBe(0);
+    // daily rotation => a follower never sees yesterday's tip again today.
+    expect(morning?.kind === 'message' && morning.selection).toBe('daily');
+  });
+
   it('findSchedule returns undefined for an unknown name', () => {
     expect(findSchedule('does_not_exist')).toBeUndefined();
   });

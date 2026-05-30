@@ -18,7 +18,7 @@ content is in clear Arabic.
 
 | Schedule           | When                | What                                                        |
 | ------------------ | ------------------- | ----------------------------------------------------------- |
-| `morning_reminder` | every day 07:00     | one gentle parenting tip, picked at random from a pool      |
+| `morning_reminder` | every day 07:00     | one gentle parenting tip, rotated daily through a pool       |
 | `friday_family`    | Friday 09:00        | a weekly "family time" nudge + a touch of Friday sunnah     |
 | `evening_poll`     | every day 21:00     | anonymous, multi-answer poll: "what did you do today?"      |
 
@@ -27,8 +27,18 @@ they managed today, everyone sees aggregate percentages, and nobody (not
 even the bot) learns who voted. There is no database. On the weekend
 (Fri/Sat) it adds a "family time" option.
 
-Only `evening_poll` is replaced each day (`keepLast: 1`), so the channel
-never stacks identical polls on top of the pinned welcome.
+The morning tip uses **deterministic daily rotation**: the same tip on a
+given date, never the same tip two days running, and the whole pool is
+shown before any repeat (no state needed, so it is restart-safe).
+
+What gets replaced vs kept:
+
+- `morning_reminder` is **kept** (`keepLast: 0`). Each tip is unique,
+  evergreen content, so the channel grows a browsable, shareable library.
+- `friday_family` and `evening_poll` are **replaced** each cycle
+  (`keepLast: 1`), because the weekly message and the daily poll are
+  identical every time, so a single live copy keeps the channel clean and
+  never buries the pinned welcome.
 
 ## Content authenticity
 
@@ -60,7 +70,7 @@ src/
     logger.ts             ISO-timestamped structured logger
     post.ts               sendMessage / sendPoll / deleteMessage wrappers (no parse_mode)
     state.ts              the message-id pointer file (replace-on-next-fire)
-    pick.ts               random pick from a content array
+    pick.ts               content pickers: random, and deterministic daily rotation
 scripts/
   send-test.ts            fire every schedule once, for a live preview
   post-welcome.ts         post or edit-in-place the pinned welcome
@@ -104,10 +114,11 @@ pnpm dev            # or pnpm start in production
 ## How it works
 
 - **No database.** All content lives in `src/content/*.ts`. The only
-  persisted state is a tiny JSON pointer file that remembers the last
-  message_id per schedule, so the "replace the previous poll" cleanup
-  survives a restart. Lose it and the bot still runs; it just leaks one
-  stale message until the next cycle.
+  persisted state is a tiny JSON pointer file that remembers the id of the
+  latest evening poll and the latest weekly Friday message, so the
+  "replace the previous one" cleanup survives a restart. The morning tips
+  are kept, so they are never tracked. Lose the file and the bot still
+  runs; it just leaks one stale poll/message until the next cycle.
 - **No parse_mode.** Arabic and Quran text contains characters that make
   Telegram's Markdown/HTML parser return a 400, so every send is plain
   text. Poll lines are wrapped in a Unicode bidi isolate for correct RTL

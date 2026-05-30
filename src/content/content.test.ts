@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { morningReminders } from './morningReminders';
 import { fridayFamily } from './fridayFamily';
 import { welcomeMessage } from './welcome';
+import { pickForDay } from '../lib/pick';
 
 // Telegram single-message hard limit. Our messages are far shorter, but
 // guard against a future edit that accidentally pastes a huge block.
@@ -23,6 +24,17 @@ describe('morningReminders', () => {
 
   it('has no duplicate tips', () => {
     expect(new Set(morningReminders).size).toBe(morningReminders.length);
+  });
+
+  it('daily rotation never shows the same tip on consecutive days (over a full year)', () => {
+    let day = new Date('2026-01-01T07:00:00Z');
+    for (let i = 0; i < 366; i++) {
+      const next = new Date(day.getTime() + 86_400_000);
+      expect(pickForDay(morningReminders, day, 'Africa/Cairo')).not.toBe(
+        pickForDay(morningReminders, next, 'Africa/Cairo'),
+      );
+      day = next;
+    }
   });
 });
 

@@ -55,9 +55,8 @@ export const schedules: ScheduleDef[] = [
     kind: 'poll',
     // 21:00 Cairo: after the children sleep, parents reflect on the day.
     cron: '0 21 * * *',
-    // Factory, rebuilt each fire so the weekend (Fri/Sat) adds a
-    // family-time option (see poll.ts), while one schedule + one state
-    // key keeps cleanup simple.
+    // A factory (not a fixed spec) so the poll stays easy to vary later
+    // without touching the scheduler. See content/poll.ts.
     poll: () => buildParentingPoll(),
     // Opts the poll into replace-on-next-fire (polls default to 0 =
     // untracked), so exactly one live poll shows: no stack of identical

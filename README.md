@@ -23,9 +23,11 @@ content is in clear Arabic.
 | `evening_poll`     | every day 21:00     | anonymous, multi-answer poll: "what did you do today?"      |
 
 The evening poll is **anonymous and multi-answer**: parents tick what
-they managed today, everyone sees aggregate percentages, and nobody (not
-even the bot) learns who voted. There is no database. On the weekend
-(Fri/Sat) it adds a "family time" option.
+they managed today (affection, play, listening, patience without
+insults, fairness, keeping promises, du'a, teaching, managing screen
+time, a calm bedtime), everyone sees aggregate percentages, and nobody
+(not even the bot) learns who voted. There is no database. It is a fixed
+set of 10 options (Telegram's maximum).
 
 The morning tip uses **deterministic daily rotation**: the same tip on a
 given date, never the same tip two days running, and the whole pool is
@@ -123,8 +125,8 @@ pnpm dev            # or pnpm start in production
   Telegram's Markdown/HTML parser return a 400, so every send is plain
   text. Poll lines are wrapped in a Unicode bidi isolate for correct RTL
   rendering next to the vote percentages.
-- **Timezone-aware.** All cron fires and the poll's weekend detection use
-  `Intl` against `TZ_NAME`, not the host clock.
+- **Timezone-aware.** All cron fires and the morning tip's daily rotation
+  use `Intl` against `TZ_NAME`, not the host clock.
 - **Let it crash, restart clean.** Uncaught errors exit so the supervisor
   restarts from a clean state; SIGINT/SIGTERM shut down gracefully with a
   timeout cap.

@@ -25,9 +25,9 @@ easy English.
   plus a touch of Friday sunnah, `src/content/fridayFamily.ts`. Default
   `keepLast: 1` (the message is identical weekly, so one live copy).
 - `evening_poll` (poll, daily 21:00): anonymous, multi-answer self-review,
-  built by `buildParentingPoll()` in `src/content/poll.ts`. `keepLast: 1`
-  so only one live poll exists at a time. The weekend (Fri/Sat) adds a
-  family-time option.
+  built by `buildParentingPoll()` in `src/content/poll.ts`. A fixed set of
+  10 options (Telegram's max). `keepLast: 1` so only one live poll exists
+  at a time.
 
 `schedules.ts` is THE EDIT POINT: one cron rule + what to post per entry.
 
@@ -46,7 +46,7 @@ easy English.
 
 - No `parse_mode` on any send (Arabic/Quran text 400s Markdown/HTML).
   Poll lines go through `rtlIsolate()` in `lib/post.ts` for RTL rendering.
-- All day/time logic (cron, weekend detection in the poll) uses `Intl`
+- All day/time logic (cron, the morning tip's daily rotation) uses `Intl`
   against `config.timezone`, never the host clock. `config.ts` validates
   the IANA timezone and throws at startup on a typo.
 - Telegram poll limits enforced by `poll.test.ts`: question <=300 chars,

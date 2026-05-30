@@ -20,11 +20,23 @@ async function main() {
   startScheduler(bot);
   startHealthServer();
 
-  bot.start({
-    onStart: () => {
-      logger.info('Bot is running. Press Ctrl+C to stop.');
-    },
-  });
+  // Not awaited: start() resolves only when the bot stops, and we want
+  // main() to return so the signal handlers below are armed. But a fatal
+  // polling failure (e.g. a bad token surfaced after boot) rejects this
+  // promise; catch it so it crashes cleanly (let-it-crash, restart fresh)
+  // instead of becoming an unhandledRejection. A normal bot.stop() during
+  // shutdown resolves rather than rejects, so this only fires on errors.
+  bot
+    .start({
+      onStart: () => {
+        logger.info('Bot is running. Press Ctrl+C to stop.');
+      },
+    })
+    .catch((err) => {
+      if (shuttingDown) return;
+      logger.error('Bot polling failed', { error: String(err) });
+      process.exit(1);
+    });
 }
 
 let shuttingDown = false;

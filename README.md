@@ -1,4 +1,4 @@
-# آمَن (aamin)
+# آمِن (aamin)
 
 A calm Telegram channel bot for Arab Muslim parents. It posts gentle
 daily reminders that help you raise your children with love and rifq

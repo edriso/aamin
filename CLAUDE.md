@@ -1,6 +1,6 @@
 # CLAUDE.md (aamin)
 
-Project-specific notes for the "آمَن" (aamin) bot. The shared conventions
+Project-specific notes for the "آمِن" (aamin) bot. The shared conventions
 live in `../CLAUDE.md` at the `bots/` root; this file only covers what is
 specific to this project. Easy English on purpose, no em dashes.
 

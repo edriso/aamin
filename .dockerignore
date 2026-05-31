@@ -1,0 +1,43 @@
+# Files the Docker daemon should NOT receive when building the image.
+# Smaller context = faster builds and no accidental secrets in layers.
+
+node_modules
+dist
+.git
+.gitignore
+
+# Secrets — env is provided at runtime by Compose (env_file), never baked
+# into the image.
+.env
+.env.*
+!.env.example
+
+# Runtime pointer file — recreated by the bot on first write.
+data
+
+# Build output / artifacts
+coverage
+*.log
+*.tsbuildinfo
+
+# Editor / OS junk
+.vscode
+.idea
+.DS_Store
+.claude
+
+# Tests — compiled into dist by tsc but never executed at runtime.
+# Excluding them keeps them out of the build context; tsc still runs
+# over the rest of src/ unchanged.
+src/**/*.test.ts
+
+# Dev-only scripts (send-test, post-welcome). Not imported by the app.
+scripts
+
+# Docs and config the build does not need
+README.md
+CLAUDE.md
+docs
+.prettierrc
+.prettierignore
+vitest.config.ts

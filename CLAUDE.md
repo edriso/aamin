@@ -25,9 +25,9 @@ easy English.
   plus a touch of Friday sunnah, `src/content/fridayFamily.ts`. Default
   `keepLast: 1` (the message is identical weekly, so one live copy).
 - `evening_poll` (poll, daily 21:00): anonymous, multi-answer self-review,
-  built by `buildParentingPoll()` in `src/content/poll.ts`. A fixed set of
-  10 options (Telegram's max). `keepLast: 1` so only one live poll exists
-  at a time.
+  built by `buildParentingPoll()` in `src/content/poll.ts`. 10 options on
+  weekdays; Fri/Sat add a family-time option (11). Telegram's max is 12
+  (Bot API 9.1+). `keepLast: 1` so only one live poll exists at a time.
 
 `schedules.ts` is THE EDIT POINT: one cron rule + what to post per entry.
 
@@ -46,13 +46,14 @@ easy English.
 
 - No `parse_mode` on any send (Arabic/Quran text 400s Markdown/HTML).
   Poll lines go through `rtlIsolate()` in `lib/post.ts` for RTL rendering.
-- All day/time logic (cron, the morning tip's daily rotation) uses `Intl`
-  against `config.timezone`, never the host clock. `config.ts` validates
-  the IANA timezone and throws at startup on a typo.
+- All day/time logic (cron, the morning tip's daily rotation, the poll's
+  weekend detection) uses `Intl` against `config.timezone`, never the host
+  clock. `config.ts` validates the IANA timezone and throws at startup on
+  a typo.
 - Telegram poll limits enforced by `poll.test.ts`: question <=300 chars,
-  2..10 options, each <=98 (we leave 2 chars of headroom for the bidi
-  isolate). Keep the emoji at the END of each option (a leading emoji
-  collides with the vote percentage).
+  2..12 options (Bot API 9.1+ raised the max from 10 to 12), each <=98 (we
+  leave 2 chars of headroom for the bidi isolate). Keep the emoji at the
+  END of each option (a leading emoji collides with the vote percentage).
 - The morning pool rotates deterministically by day-of-year
   (`pickForDay`), so a follower never sees yesterday's tip again today and
   the whole pool is covered before any repeat. Keep the pool large enough

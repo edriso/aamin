@@ -16,11 +16,17 @@ shape: a tiny, source-driven, no-database channel broadcaster.
 All times are in `TZ_NAME` (default `Africa/Cairo`). The user-facing
 content is in clear Arabic.
 
-| Schedule           | When                | What                                                        |
-| ------------------ | ------------------- | ----------------------------------------------------------- |
-| `morning_reminder` | every day 07:00     | one gentle parenting tip, rotated daily through a pool       |
-| `friday_family`    | Friday 09:00        | a weekly "family time" nudge + a touch of Friday sunnah     |
-| `evening_poll`     | every day 21:00     | anonymous, multi-answer poll: "what did you do today?"      |
+| Schedule           | When                | What                                                        | Notification |
+| ------------------ | ------------------- | ----------------------------------------------------------- | ------------ |
+| `morning_reminder` | every day 07:00     | one gentle parenting tip, rotated daily through a pool       | rings        |
+| `friday_family`    | Friday 09:00        | a weekly "family time" nudge + a touch of Friday sunnah     | silent       |
+| `evening_poll`     | every day 21:00     | anonymous, multi-answer poll: "what did you do today?"      | rings        |
+
+The channel is deliberately calm: it rings **twice a day** (the morning tip
+and the evening poll). The weekly Friday nudge is an extra, so it is sent
+**silently** (Telegram `disable_notification`): it still appears in the
+channel that morning, it just does not add a third buzz. The flag is
+`silent: true` on that entry in `src/schedules.ts`.
 
 The evening poll is **anonymous and multi-answer**: parents tick what
 they managed today (affection, play, listening, patience without

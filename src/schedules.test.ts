@@ -46,4 +46,12 @@ describe('schedules table', () => {
   it('findSchedule returns undefined for an unknown name', () => {
     expect(findSchedule('does_not_exist')).toBeUndefined();
   });
+
+  // The documented cadence: rings twice a day (morning tip + evening poll);
+  // the weekly Friday nudge rides in silently so it adds no third buzz.
+  it('rings the morning tip and the evening poll, silences the Friday nudge', () => {
+    expect(findSchedule('morning_reminder')?.silent, 'morning tip should ring').not.toBe(true);
+    expect(findSchedule('evening_poll')?.silent, 'evening poll should ring').not.toBe(true);
+    expect(findSchedule('friday_family')?.silent, 'Friday nudge should be silent').toBe(true);
+  });
 });

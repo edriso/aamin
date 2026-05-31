@@ -24,6 +24,9 @@ easy English.
 - `friday_family` (message, Friday 09:00): a weekly family-time nudge
   plus a touch of Friday sunnah, `src/content/fridayFamily.ts`. Default
   `keepLast: 1` (the message is identical weekly, so one live copy).
+  Carries `silent: true` (Telegram `disable_notification`): it is a weekly
+  extra on top of the daily morning/evening pings, so it arrives without a
+  buzz and the channel stays at its two-interruptions-a-day cadence.
 - `evening_poll` (poll, daily 21:00): anonymous, multi-answer self-review,
   built by `buildParentingPoll()` in `src/content/poll.ts`. 10 options on
   weekdays; Fri/Sat add a family-time option (11). Telegram's max is 12
@@ -46,6 +49,10 @@ easy English.
 
 - No `parse_mode` on any send (Arabic/Quran text 400s Markdown/HTML).
   Poll lines go through `rtlIsolate()` in `lib/post.ts` for RTL rendering.
+- Notification cadence: rings twice a day (morning tip + evening poll). A
+  schedule may set `silent: true` (only `friday_family` does today); the
+  scheduler passes it to `lib/post.ts`, which adds `disable_notification`.
+  A schedules test pins which posts ring vs ride in silently.
 - All day/time logic (cron, the morning tip's daily rotation, the poll's
   weekend detection) uses `Intl` against `config.timezone`, never the host
   clock. `config.ts` validates the IANA timezone and throws at startup on

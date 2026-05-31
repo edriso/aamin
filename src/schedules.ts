@@ -17,9 +17,11 @@ export type { ScheduleDef } from './types';
  * April and node-cron silently drops jobs in that missing hour.
  *
  * Cadence is deliberately calm: what hurts retention is the number of
- * separate notification moments, not the message count. This bot is at
- * most two interruptions a day (a morning ping, an evening ping), plus a
- * weekly Friday family nudge bundled into the morning slot.
+ * separate notification moments, not the message count. This bot rings
+ * exactly twice a day, a morning ping (the tip) and an evening ping (the
+ * poll). The weekly Friday family nudge is an extra, so it carries
+ * `silent: true` (Telegram disable_notification): it still appears in the
+ * channel that morning, it just does not add a third buzz.
  */
 export const schedules: ScheduleDef[] = [
   {
@@ -48,7 +50,10 @@ export const schedules: ScheduleDef[] = [
     // No keepLast set => message default 1 (replace-on-next-fire). The
     // Friday message is the same each week, so we keep one live copy
     // instead of stacking 52 identical posts a year.
-    description: 'وقفةُ يوم العائلة (وقتٌ للأبناء + سننُ الجمعة)، الجمعة 9:00 ص.',
+    // Silent: a weekly extra on top of the daily morning/evening pings, so
+    // it arrives without a buzz and Friday stays at two interruptions.
+    silent: true,
+    description: 'وقفةُ يوم العائلة (وقتٌ للأبناء + سننُ الجمعة)، الجمعة 9:00 ص (صامت).',
   },
   {
     name: 'evening_poll',

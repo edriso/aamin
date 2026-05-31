@@ -44,6 +44,14 @@ describe('postToChannel', () => {
     const bot = { api: { sendMessage } } as unknown as Bot<Context>;
     await expect(postToChannel(bot, 'hi')).resolves.toBeNull();
   });
+
+  it('posts silently when asked: disable_notification true, still no parse_mode', async () => {
+    const { bot, sendMessage } = fakeBot();
+    await postToChannel(bot, 'تذكير صامت', { scheduleName: 'friday_family', silent: true });
+    const [, , opts] = sendMessage.mock.calls[0];
+    expect(opts).toEqual({ disable_notification: true });
+    expect(opts.parse_mode).toBeUndefined();
+  });
 });
 
 describe('deleteChannelMessage', () => {
@@ -78,6 +86,16 @@ describe('sendPollToChannel', () => {
     // 5 hours from now, give or take a couple seconds of test runtime.
     expect(opts.close_date).toBeGreaterThanOrEqual(before + 5 * 3600);
     expect(opts.close_date).toBeLessThanOrEqual(Math.floor(Date.now() / 1000) + 5 * 3600 + 5);
+  });
+
+  it('rings by default (disable_notification false) and is silenceable', async () => {
+    const audible = fakeBot();
+    await sendPollToChannel(audible.bot, { question: 'q', options: ['a', 'b'] });
+    expect(audible.sendPoll.mock.calls[0][3].disable_notification).toBe(false);
+
+    const silent = fakeBot();
+    await sendPollToChannel(silent.bot, { question: 'q', options: ['a', 'b'] }, { silent: true });
+    expect(silent.sendPoll.mock.calls[0][3].disable_notification).toBe(true);
   });
 
   it('clamps an absurd closeAfterHours into Telegram range', async () => {

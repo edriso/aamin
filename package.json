@@ -2,6 +2,7 @@
   "name": "aamin",
   "version": "1.0.0",
   "private": true,
+  "description": "A calm Telegram channel bot for Arab Muslim parents: gentle daily parenting reminders and an anonymous evening self-review poll, to raise kids with love and rifq and help them feel safe (aman).",
   "license": "0BSD",
   "type": "module",
   "main": "dist/index.js",

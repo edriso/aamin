@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { morningReminders } from './morningReminders';
 import { fridayFamily } from './fridayFamily';
 import { welcomeMessage } from './welcome';
-import { pickForDay } from '../lib/pick';
+import { pickForDay } from 'telegram-broadcast-kit';
 
 // Telegram single-message hard limit. Our messages are far shorter, but
 // guard against a future edit that accidentally pastes a huge block.

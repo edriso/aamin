@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Bot, Context } from 'grammy';
-import { runSchedule } from './scheduler';
-import { findSchedule } from './schedules';
-import type { ScheduleDef } from './types';
 import {
   _resetForTests as resetState,
   getLastMessageId,
   setLastMessageId,
   getMessageIds,
-} from './lib/state';
+} from 'telegram-broadcast-kit';
+import { runSchedule } from './scheduler';
+import { findSchedule } from './schedules';
+import type { ScheduleDef } from './types';
 
 /**
  * runSchedule must dispatch on `kind` (message -> sendMessage, poll ->

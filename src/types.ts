@@ -3,24 +3,15 @@
  *
  * Kept in its own file so content modules can import `PollSpec` without
  * creating an import cycle with `schedules.ts` (which imports content).
+ *
+ * `PollSpec` is re-exported from telegram-broadcast-kit (the shared kernel
+ * owns the poll wire shape, so the schedule defs and the kit's `sendPoll`
+ * agree on one type). The bot-specific schedule types below stay local.
  */
 
-/** A single anonymous poll definition (the evening self-review). */
-export interface PollSpec {
-  /** Telegram allows <=300 chars; tests cap lower for a safe margin. */
-  question: string;
-  /** 2..10 options, each <=100 chars. lib/post.ts maps these to the
-   *  InputPollOption objects Bot API 7.3+ expects. */
-  options: readonly string[];
-  /** Anonymous by default: nobody (not even the bot) sees who voted,
-   *  only aggregate percentages. Keep true: it's the whole point. */
-  isAnonymous?: boolean;
-  /** Allow ticking several deeds in one vote. Defaults to true. */
-  allowsMultipleAnswers?: boolean;
-  /** Hours until Telegram auto-closes the poll. Clamped to Telegram's
-   *  5s..~30d window in lib/post.ts. Default 22h. */
-  closeAfterHours?: number;
-}
+import type { PollSpec } from 'telegram-broadcast-kit';
+
+export type { PollSpec } from 'telegram-broadcast-kit';
 
 interface BaseSchedule {
   /** Unique, short id. Used in logs and `/admin_run <name>`. */

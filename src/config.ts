@@ -1,4 +1,10 @@
-import 'dotenv/config';
+import { loadEnv } from 'telegram-broadcast-kit';
+
+// Load the bot's root .env before reading any variable. loadEnv walks up to
+// the folder with package.json, so a command run from any subfolder still
+// finds the single .env. dotenv never overrides already-set vars, so the
+// values vitest injects in tests win over a local .env.
+loadEnv();
 
 function requireEnv(key: string): string {
   const value = process.env[key];

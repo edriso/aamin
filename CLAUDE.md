@@ -15,6 +15,15 @@ workspace + Prisma shape from the shared CLAUDE.md; this bot needs no db).
 User-facing content is in clear Arabic. Code, comments, and docs are in
 easy English.
 
+## Shared kernel
+
+The generic plumbing — `logger`, `env`, `bidi` (`rtlIsolate`), `pickContent`/`pickForDay`, the
+JSON-pointer `state`, `post`/`sendPoll`/`deleteMessage`, the cron `Scheduler`, and the `/health`
+server — comes from **`telegram-broadcast-kit`** (pinned by tag in `package.json`, auto-bumped by
+Renovate). aamin keeps only what is aamin-specific: its schedule table, content, the poll builder,
+and the `runSchedule` dispatch. Mentions of `lib/post.ts` below now refer to the kit's `post`
+module. To change shared code, edit the kit and ship a new tag (see its README).
+
 ## What it posts (all times in TZ_NAME, default Africa/Cairo)
 
 - `morning_reminder` (message, daily 07:00): one gentle parenting tip from

@@ -1,6 +1,7 @@
 import { Bot, Context } from 'grammy';
 import { logger } from 'telegram-broadcast-kit';
 import { config } from './config';
+import { botAbout, botDescription } from './content/profile';
 import { schedules, findSchedule } from './schedules';
 import { runSchedule } from './scheduler';
 
@@ -108,8 +109,13 @@ bot.catch((err) => {
   logger.error('Bot error', { error: String(err.error), update: err.ctx.update.update_id });
 });
 
-async function setBotCommands() {
+async function setBotProfile() {
   await bot.api.setMyCommands([{ command: 'start', description: 'عن هذا البوت' }]);
+  // Set the About (short description) and Description over the Bot API too, so
+  // the bot is self-describing on deploy — no manual @BotFather step. (The name
+  // and profile photo cannot be set via the Bot API; those stay in @BotFather.)
+  await bot.api.setMyShortDescription(botAbout);
+  await bot.api.setMyDescription(botDescription);
 }
 
-export { bot, setBotCommands };
+export { bot, setBotProfile };

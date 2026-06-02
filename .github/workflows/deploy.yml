@@ -1,5 +1,10 @@
-# Push-to-deploy: on every push to main, SSH into the VPS, pull the
-# latest code, and rebuild just this bot's container.
+# CI + push-to-deploy. The `test` job (typecheck, tests) runs on every push to
+# main AND on every pull request to main, so dependency-bump PRs (e.g. Renovate
+# bumping grammy/node-cron) show a green/red check before merge. The `deploy`
+# job runs ONLY on a push to main: it SSHes into the VPS, pulls the latest code,
+# and rebuilds just this bot's container.
+#
+# aamin has no database, so there is no migrate/seed step — just rebuild.
 #
 # Required GitHub secrets (repo -> Settings -> Secrets and variables ->
 # Actions -> New repository secret):
@@ -14,9 +19,36 @@ name: deploy
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
+  # Gate: typecheck + tests must pass before we touch production. A push that
+  # breaks the build never reaches the server (it would otherwise fail to boot
+  # or misbehave with no warning). Also runs on PRs so bump PRs are checked.
+  test:
+    runs-on: ubuntu-latest
+    # Placeholders so the config module (which requires these at load) does not
+    # throw when a test imports it; the tests never actually talk to Telegram.
+    env:
+      BOT_TOKEN: ci-placeholder
+      CHANNEL_CHAT_ID: '@ci_placeholder'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+
   deploy:
+    needs: test
+    # Only deploy on a real push to main, never on a pull request.
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Deploy over SSH
@@ -26,6 +58,7 @@ jobs:
           username: root
           key: ${{ secrets.SSH_KEY }}
           script: |
+            set -e
             cd /opt/bots/telegram/aamin && git pull
             cd /opt/bots && docker compose up -d --build aamin
             docker image prune -f

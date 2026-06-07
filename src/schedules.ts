@@ -37,7 +37,7 @@ export const schedules: ScheduleDef[] = [
     // Keep every tip live (do NOT replace-on-next-fire). Each morning tip
     // is unique, evergreen content, so the channel grows a browsable,
     // shareable library instead of throwing yesterday's away. Only the
-    // identical daily poll and weekly Friday message get replaced.
+    // daily poll and the rotating weekly Friday activity get replaced.
     keepLast: 0,
     description: 'تذكيرٌ تربويٌّ صباحيّ (بالتناوب اليوميّ، لا يتكرّر تذكير الأمس)، كل يوم 7:00 ص.',
   },

@@ -84,6 +84,13 @@ module. To change shared code, edit the kit and ship a new tag (see its README).
   (`pickForDay`), so a follower never sees yesterday's tip again today and
   the whole pool is covered before any repeat. Keep the pool large enough
   (>=28); a test asserts this and that consecutive days never collide.
+- The bot self-sets its About (<=120 chars) and Description (<=512) on
+  startup via the Bot API (`setBotProfile` in `bot.ts`, text in
+  `content/profile.ts`). These are awaited before the scheduler, so an
+  over-long edit would 400 and crash on boot; `profile.test.ts` guards
+  both limits (About sits at 119/120, one edit from the cap). The pinned
+  welcome (`content/welcome.ts`) is posted manually via `pnpm post-welcome`
+  and is capped at 4096; if schedule times change, update it by hand.
 
 ## Commands
 

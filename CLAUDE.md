@@ -48,13 +48,17 @@ module. To change shared code, edit the kit and ship a new tag (see its README).
   stays at its two-interruptions-a-day cadence.
 - `bedtime_ritual` (message, daily 21:00, silent): the nightly "put your
   child to bed on dhikr + a hug so they sleep feeling safe" reminder, the
-  most literal expression of the channel's aman aim. By default a fixed
-  card (`bedtimeRitual` in `src/content/bedtime.ts`) that repeats nightly
-  (`keepLast: 1`, one live "tonight's ritual"). A ready rotating-pool
-  alternative (`bedtimeRituals`) sits in the same file behind a documented
-  one-line switch; a daily fire has no multiple-of-7 caveat (that is the
-  weekly Friday post's concern only). Bedtime adhkar are famous sahih texts
-  (Bukhari/Muslim) with takhreej in comments.
+  most literal expression of the channel's aman aim. Its `content` is a
+  **factory** (`() => pickBedtimeContent()`, like the poll's factory) that
+  **alternates night by night**: even nights show the fixed full card
+  (`bedtimeRitual`), odd nights a rotating pool item (`bedtimeRituals`),
+  all in `src/content/bedtime.ts`. So both are live (no dead content), and
+  you get the anchoring of a repeated card plus the freshness of variety.
+  Alternation uses **epoch-day parity** (not day-of-year) so the flip never
+  stutters at the year boundary, and the pool steps one item per pool-night
+  so it fully rotates at any size. `keepLast: 1` => one live "tonight's
+  ritual". Bedtime adhkar are famous sahih texts (Bukhari/Muslim) with
+  takhreej in comments.
 - `evening_poll` (poll, daily 21:30, silent): anonymous, multi-answer
   self-review (muhasaba), built by `buildParentingPoll()` in
   `src/content/poll.ts`. 10 options on weekdays; Fri/Sat add a family-time

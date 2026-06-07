@@ -64,6 +64,9 @@ describe('schedules table', () => {
     // keepLast omitted => message default 1 (one live "tonight's ritual").
     expect(ritual?.keepLast).toBeUndefined();
     expect(ritual?.cron).toBe('0 21 * * *');
+    // Content is a factory: it alternates the fixed card with a pool item
+    // night by night (see content/bedtime.ts pickBedtimeContent).
+    expect(ritual?.kind === 'message' && typeof ritual.content).toBe('function');
   });
 
   it('the evening poll follows the ritual (21:30, after 21:00)', () => {

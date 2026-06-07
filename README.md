@@ -64,16 +64,18 @@ this week's activity stays live. One caution for maintainers: because
 Friday fires weekly, the pool size must **not** be a multiple of 7, or the
 rotation would land on the same activity every Friday. A test enforces it.
 
-The **bedtime ritual** is the channel's most on-the-nose aman moment: a
-nightly card walking the parent through the sunnah of sleep (wudu, Ayat
-al-Kursi, the Mu'awwidhat with the blow-and-wipe, the sleeping du'a) ending
-in a hug and "I love you", so the child falls asleep feeling safe. By
-default it is a **fixed card** repeated nightly (rituals form through
-repetition). A ready **rotating-pool** alternative lives in the same file
-(`src/content/bedtime.ts`) behind a documented one-line switch — flip it on
-by importing `bedtimeRituals` instead and adding `selection: 'daily'`.
-Unlike Friday, a daily fire has no multiple-of-7 caveat (it steps by one
-day, so any pool of 2+ rotates).
+The **bedtime ritual** is the channel's most on-the-nose aman moment: the
+sunnah of sleep (wudu, Ayat al-Kursi, the Mu'awwidhat with the
+blow-and-wipe, the sleeping du'a) ending in a hug and "I love you", so the
+child falls asleep feeling safe. It **alternates night by night**: one
+night the **fixed full card**, the next a single **rotating pool item**,
+then the card again, and so on. So you get both the anchoring of a repeated
+ritual and the freshness of variety — and both halves are actually used (no
+dead content). This is done with a small `content` **factory**
+(`pickBedtimeContent` in `src/content/bedtime.ts`), the message-side
+equivalent of the poll's factory. The flip uses **epoch-day parity** (not
+day-of-year) so it never stutters at the year boundary, and the pool steps
+one item per pool-night so it fully rotates at any size.
 
 What gets replaced vs kept:
 
@@ -116,7 +118,7 @@ src/
   content/
     morningReminders.ts   the morning tips: child-facing + a parent sakina strand
     fridayFamily.ts       the rotating weekly family-activity pool
-    bedtime.ts            the nightly bedtime ritual (fixed card + rotating-pool switch)
+    bedtime.ts            the nightly bedtime ritual (alternates a fixed card + rotating pool)
     poll.ts               buildParentingPoll(): the evening poll factory
     profile.ts            the bot's About + Description text (self-set on startup)
     welcome.ts            the pinned welcome message

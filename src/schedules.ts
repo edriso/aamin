@@ -1,6 +1,6 @@
 import { morningReminders } from './content/morningReminders';
 import { fridayFamily } from './content/fridayFamily';
-import { bedtimeRitual } from './content/bedtime';
+import { pickBedtimeContent } from './content/bedtime';
 import { buildParentingPoll } from './content/poll';
 import type { ScheduleDef } from './types';
 
@@ -8,7 +8,9 @@ export type { ScheduleDef } from './types';
 
 /**
  * THE FILE TO EDIT. Each entry is one cron rule + what to post:
- *   kind: 'message' -> text (fixed string, or random from an array)
+ *   kind: 'message' -> text: a fixed string, a pool (array, chosen per
+ *                      `selection`), or a `() => string` factory for custom
+ *                      per-day logic (the bedtime ritual uses a factory)
  *   kind: 'poll'    -> the anonymous evening self-review poll
  *
  * `cron` is a 5-field expression in TZ_NAME (default Africa/Cairo).
@@ -74,15 +76,15 @@ export const schedules: ScheduleDef[] = [
     // 21:00 Cairo: bedtime. The reminder to put the child down on dhikr
     // and a hug, so they fall asleep feeling safe (the channel's whole aim).
     cron: '0 21 * * *',
-    // A fixed nightly card by default. To rotate instead, import
-    // { bedtimeRituals } here and set `content: bedtimeRituals` +
-    // `selection: 'daily'` (see content/bedtime.ts for the one-line switch).
-    content: bedtimeRitual,
+    // A factory called each fire (like the poll), so the content can vary
+    // by day: it alternates the fixed full card with a rotating pool item,
+    // night by night. See content/bedtime.ts (pickBedtimeContent).
+    content: () => pickBedtimeContent(),
     // keepLast default 1: one live "tonight's ritual", last night's deleted.
     // Silent: the day already rang once (the morning tip); bedtime should
     // calm, not buzz. It still appears in the channel for whoever opens it.
     silent: true,
-    description: 'طمأنينةُ النوم (أذكارُ النوم + حضنٌ ودعاء)، كل يوم 9:00 م (صامت).',
+    description: 'طمأنينةُ النوم (بطاقةٌ ثابتة ومجموعةٌ تتناوب ليلةً بليلة)، كل يوم 9:00 م (صامت).',
   },
   {
     name: 'evening_poll',

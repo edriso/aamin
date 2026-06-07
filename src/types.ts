@@ -51,14 +51,22 @@ interface BaseSchedule {
   silent?: boolean;
 }
 
-/** Posts a text message. `content` may be a fixed string or an array. */
+/**
+ * Posts a text message. `content` may be:
+ *   - a fixed string,
+ *   - a pool (array), one entry chosen each fire per `selection`, or
+ *   - a factory `() => string` called at fire time for custom per-day
+ *     logic (mirrors `PollSchedule.poll`). A factory decides the exact
+ *     text itself, so `selection` is ignored for it. Used by the bedtime
+ *     ritual to alternate a fixed card with a rotating pool day by day.
+ */
 export interface MessageSchedule extends BaseSchedule {
   kind: 'message';
-  content: string | readonly string[];
+  content: string | readonly string[] | (() => string);
   /**
-   * How an array `content` is chosen each fire (ignored for a fixed
-   * string):
-   *   - 'random' (default): one entry at random (lib/pick.ts pickContent).
+   * How an array `content` is chosen each fire (ignored for a fixed string
+   * or a factory):
+   *   - 'random' (default): one entry at random (pickContent).
    *   - 'daily': deterministic day-of-year rotation (pickForDay), so the
    *     same calendar day always shows the same entry, two consecutive
    *     days never repeat, and the whole pool is covered before any

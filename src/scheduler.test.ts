@@ -78,6 +78,34 @@ describe('runSchedule dispatch', () => {
     expect(sendPoll).not.toHaveBeenCalled();
   });
 
+  it('a message schedule with a factory content posts what the factory returns', async () => {
+    const { bot, sendMessage, sendPoll } = fakeBot();
+    const def: ScheduleDef = {
+      name: 'factory_msg',
+      kind: 'message',
+      cron: '0 3 * * *',
+      content: () => 'made at fire time',
+    };
+    const id = await runSchedule(bot, def);
+    expect(id).toBe(11);
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    expect(sendMessage.mock.calls[0][1]).toBe('made at fire time');
+    expect(sendPoll).not.toHaveBeenCalled();
+  });
+
+  it('a message factory returning empty posts nothing', async () => {
+    const { bot, sendMessage } = fakeBot();
+    const def: ScheduleDef = {
+      name: 'empty_factory',
+      kind: 'message',
+      cron: '0 3 * * *',
+      content: () => '',
+    };
+    const id = await runSchedule(bot, def);
+    expect(id).toBeNull();
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
   it('propagates a null result when the send fails', async () => {
     const sendMessage = vi.fn().mockRejectedValue(new Error('boom'));
     const bot = {

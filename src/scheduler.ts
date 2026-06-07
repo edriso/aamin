@@ -11,7 +11,7 @@ import {
   logger,
 } from 'telegram-broadcast-kit';
 import { schedules } from './schedules';
-import type { ScheduleDef } from './types';
+import type { MessageSchedule, ScheduleDef } from './types';
 import { config } from './config';
 
 // The bot-specific layer on top of the kit's generic scheduler: it owns the
@@ -80,15 +80,25 @@ async function sendForKind(bot: Bot<Context>, def: ScheduleDef): Promise<number 
     const spec = typeof def.poll === 'function' ? def.poll() : def.poll;
     return sendPoll(bot, config.channelChatId, spec, { name: def.name, silent: def.silent });
   }
-  const text =
-    def.selection === 'daily'
-      ? pickForDay(def.content, new Date(), config.timezone)
-      : pickContent(def.content);
+  const text = resolveMessageText(def);
   if (!text) {
     logger.warn('Schedule has no content to post, skipping', { name: def.name });
     return null;
   }
   return post(bot, config.channelChatId, text, { name: def.name, silent: def.silent });
+}
+
+/**
+ * Resolve a message schedule's text for this fire. A factory `content`
+ * decides the exact text itself (custom per-day logic, like the bedtime
+ * ritual's fixed/rotating alternation); a fixed string or a pool is chosen
+ * per `selection`. Returns null when there is nothing postable.
+ */
+function resolveMessageText(def: MessageSchedule): string | null {
+  if (typeof def.content === 'function') return def.content() || null;
+  return def.selection === 'daily'
+    ? pickForDay(def.content, new Date(), config.timezone)
+    : pickContent(def.content);
 }
 
 // One Scheduler instance for the whole bot, holding the live cron tasks so

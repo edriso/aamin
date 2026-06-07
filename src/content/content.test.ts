@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { morningReminders } from './morningReminders';
 import { fridayFamily } from './fridayFamily';
-import { bedtimeRitual, bedtimeRituals } from './bedtime';
+import { bedtimeRitual, bedtimeRituals, pickBedtimeContent } from './bedtime';
 import { welcomeMessage } from './welcome';
 import { pickForDay } from 'telegram-broadcast-kit';
 
@@ -98,17 +98,19 @@ describe('fridayFamily (rotating weekly activity pool)', () => {
   });
 });
 
-describe('bedtime ritual', () => {
-  it('the active fixed card is non-blank and within the message limit', () => {
+describe('bedtime ritual (alternates a fixed card with a rotating pool)', () => {
+  const TZ = 'Africa/Cairo';
+  // A run of consecutive calendar days (noon UTC stays the same day in Cairo).
+  const day = (i: number) => new Date(Date.UTC(2026, 0, 1, 12, 0, 0) + i * 86_400_000);
+
+  it('the fixed card is non-blank and within the message limit', () => {
     expect(bedtimeRitual.trim().length).toBeGreaterThan(0);
     expect(bedtimeRitual.length).toBeLessThanOrEqual(MAX_MESSAGE);
   });
 
-  // The rotating pool is the ready alternative (see content/bedtime.ts). It
-  // is not wired in by default, but guard it so the switch stays safe.
-  it('every rotating alternative is non-blank and within the message limit', () => {
-    // Daily fires step day-of-year by 1, so any size >= 2 rotates fine
-    // (the multiple-of-7 caveat is unique to the weekly Friday post).
+  it('every rotating pool item is non-blank and within the message limit', () => {
+    // Both the card and the pool are live (they alternate). The pool needs
+    // at least 2 items to be a meaningful rotation.
     expect(bedtimeRituals.length).toBeGreaterThanOrEqual(2);
     for (const ritual of bedtimeRituals) {
       expect(ritual.trim().length).toBeGreaterThan(0);
@@ -116,8 +118,34 @@ describe('bedtime ritual', () => {
     }
   });
 
-  it('has no duplicate rotating alternatives', () => {
+  it('has no duplicate pool items', () => {
     expect(new Set(bedtimeRituals).size).toBe(bedtimeRituals.length);
+  });
+
+  // The alternation contract: each night is EITHER the fixed card OR a pool
+  // item (never both, never neither), and the kind flips every single day.
+  it('alternates the fixed card and a pool item, flipping every day', () => {
+    let prevWasCard: boolean | null = null;
+    for (let i = 0; i < 14; i++) {
+      const text = pickBedtimeContent(day(i), TZ);
+      const isCard = text === bedtimeRitual;
+      const inPool = bedtimeRituals.includes(text);
+      expect(isCard !== inPool).toBe(true); // exactly one is true
+      if (prevWasCard !== null) expect(isCard).toBe(!prevWasCard);
+      prevWasCard = isCard;
+    }
+  });
+
+  // Epoch-day parity (not day-of-year) so the flip never stutters at the
+  // year boundary; and the pool steps by one each pool-night, so the whole
+  // pool is covered regardless of its size.
+  it('covers every pool item across enough pool-nights', () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < bedtimeRituals.length * 4; i++) {
+      const text = pickBedtimeContent(day(i), TZ);
+      if (text !== bedtimeRitual) seen.add(text);
+    }
+    expect(seen.size).toBe(bedtimeRituals.length);
   });
 });
 

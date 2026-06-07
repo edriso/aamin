@@ -47,13 +47,19 @@ export const schedules: ScheduleDef[] = [
     // 09:00 Cairo Friday: start of the weekend in most Arab countries.
     cron: '0 9 * * 5',
     content: fridayFamily,
-    // No keepLast set => message default 1 (replace-on-next-fire). The
-    // Friday message is the same each week, so we keep one live copy
-    // instead of stacking 52 identical posts a year.
+    // A rotating pool: each Friday shows one "family activity" from
+    // content/fridayFamily.ts, picked deterministically by date (the same
+    // Friday everywhere, restart-safe, cycling through the whole pool).
+    // The pool size must NOT be a multiple of 7, or the weekly step would
+    // land on the same item every Friday (a test guards this).
+    selection: 'daily',
+    // No keepLast set => message default 1 (replace-on-next-fire). We keep
+    // one live copy: "this week's activity". Last week's is deleted so the
+    // channel does not stack a year of weekly posts.
     // Silent: a weekly extra on top of the daily morning/evening pings, so
     // it arrives without a buzz and Friday stays at two interruptions.
     silent: true,
-    description: 'وقفةُ يوم العائلة (وقتٌ للأبناء + سننُ الجمعة)، الجمعة 9:00 ص (صامت).',
+    description: 'نشاطُ يوم العائلة (بالتناوب الأسبوعيّ + سننُ الجمعة)، الجمعة 9:00 ص (صامت).',
   },
   {
     name: 'evening_poll',

@@ -29,13 +29,23 @@ module. To change shared code, edit the kit and ship a new tag (see its README).
 - `morning_reminder` (message, daily 07:00): one gentle parenting tip from
   `src/content/morningReminders.ts`, chosen by deterministic daily
   rotation (`selection: 'daily'`, no consecutive repeats). `keepLast: 0`
-  so every unique tip is kept as a growing library, never deleted.
-- `friday_family` (message, Friday 09:00): a weekly family-time nudge
-  plus a touch of Friday sunnah, `src/content/fridayFamily.ts`. Default
-  `keepLast: 1` (the message is identical weekly, so one live copy).
-  Carries `silent: true` (Telegram `disable_notification`): it is a weekly
-  extra on top of the daily morning/evening pings, so it arrives without a
-  buzz and the channel stays at its two-interruptions-a-day cadence.
+  so every unique tip is kept as a growing library, never deleted. The
+  pool has two voices: most tips face the child (what to do with them),
+  and a "sakina" strand (a labelled section at the end of the file) faces
+  the parent's own heart, because a calm parent is the child's first
+  aman. A test pins that the sakina strand stays present.
+- `friday_family` (message, Friday 09:00): a weekly family-time nudge from
+  a rotating pool in `src/content/fridayFamily.ts` — each Friday is one
+  "family activity" (mostly kind-speech and du'a games between siblings)
+  plus a touch of Friday sunnah. `selection: 'daily'` rotates the pool
+  deterministically by date. The pool size must NOT be a multiple of 7 (a
+  weekly fire steps day-of-year by 7, so a multiple of 7 would freeze on
+  one item every Friday — a test in `content.test.ts` guards this).
+  Default `keepLast: 1` keeps one live copy ("this week's activity"), last
+  week's is deleted. Carries `silent: true` (Telegram
+  `disable_notification`): it is a weekly extra on top of the daily
+  morning/evening pings, so it arrives without a buzz and the channel
+  stays at its two-interruptions-a-day cadence.
 - `evening_poll` (poll, daily 21:00): anonymous, multi-answer self-review,
   built by `buildParentingPoll()` in `src/content/poll.ts`. 10 options on
   weekdays; Fri/Sat add a family-time option (11). Telegram's max is 12

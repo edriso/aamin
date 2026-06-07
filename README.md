@@ -19,7 +19,7 @@ content is in clear Arabic.
 | Schedule           | When                | What                                                        | Notification |
 | ------------------ | ------------------- | ----------------------------------------------------------- | ------------ |
 | `morning_reminder` | every day 07:00     | one gentle parenting tip, rotated daily through a pool       | rings        |
-| `friday_family`    | Friday 09:00        | a weekly "family time" nudge + a touch of Friday sunnah     | silent       |
+| `friday_family`    | Friday 09:00        | a rotating weekly "family activity" + a touch of Friday sunnah | silent    |
 | `evening_poll`     | every day 21:00     | anonymous, multi-answer poll: "what did you do today?"      | rings        |
 
 The channel is deliberately calm: it rings **twice a day** (the morning tip
@@ -44,16 +44,29 @@ Telegram allows up to 12.
 
 The morning tip uses **deterministic daily rotation**: the same tip on a
 given date, never the same tip two days running, and the whole pool is
-shown before any repeat (no state needed, so it is restart-safe).
+shown before any repeat (no state needed, so it is restart-safe). The pool
+mixes two voices: most tips face the child (what to do with them), and a
+**sakina** strand faces the parent's own heart (a calm parent is the
+child's first safety), because you cannot give a gentleness you have lost
+in yourself.
+
+The **Friday family post also rotates**: each week it shows one short
+"family activity" from a pool — mostly small kind-speech and du'a games
+between siblings (a blessing phrase for the week, a du'a circle at lunch,
+telling a sibling one kind thing) — plus the recurring Friday sunnah. Only
+this week's activity stays live. One caution for maintainers: because
+Friday fires weekly, the pool size must **not** be a multiple of 7, or the
+rotation would land on the same activity every Friday. A test enforces it.
 
 What gets replaced vs kept:
 
 - `morning_reminder` is **kept** (`keepLast: 0`). Each tip is unique,
   evergreen content, so the channel grows a browsable, shareable library.
 - `friday_family` and `evening_poll` are **replaced** each cycle
-  (`keepLast: 1`), because the weekly message and the daily poll are
-  identical every time, so a single live copy keeps the channel clean and
-  never buries the pinned welcome.
+  (`keepLast: 1`): only "this week's family activity" and the latest poll
+  should be live, so a single copy keeps the channel clean and never
+  buries the pinned welcome. (The Friday activity rotates through a pool
+  each week — see below — but only the current one stays live.)
 
 ## Content authenticity
 

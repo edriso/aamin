@@ -19,6 +19,7 @@
  *
  * ⚠️ تبقى مراجعةُ طالب علمٍ موثوقٍ مرّةً واحدة هي الضمانُ الأخير.
  */
+import { dayNumberIn } from 'telegram-broadcast-kit';
 import { config } from '../config';
 
 /**
@@ -90,31 +91,16 @@ export const bedtimeRituals: readonly string[] = [
 ];
 
 /**
- * عددُ الأيّام منذ بداية حقبة يونكس لِـ `now` بتوقيت `tz`. تتبدّل فرديّتُه
- * (زوجي/فردي) كلَّ يومٍ حقيقيّ بلا «قفزة» عند رأس السنة، بخلاف يوم السنة
- * الذي يعيد العدّ كلَّ سنة فيُكرّر الزوجيّة مرّةً عند المنعطف. نحسبه عبر
- * تنسيق التاريخ في `tz` (لا على ساعة المضيف) ثم Date.UTC.
- */
-function epochDayIn(now: Date, tz: string): number {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: tz,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(now);
-  const part = (type: string) => Number(parts.find((p) => p.type === type)?.value);
-  return Math.floor(Date.UTC(part('year'), part('month') - 1, part('day')) / 86_400_000);
-}
-
-/**
  * يختار وقفةَ الليلة بالتناوب يومًا بيوم: الليلةَ الزوجيّة البطاقةُ
  * الثابتة (bedtimeRitual)، والليلةَ الفرديّة بندٌ من المجموعة الدوّارة
  * (bedtimeRituals) يتقدّم بندًا واحدًا كلَّ «ليلةِ مجموعة» فتُغطّى كلُّها
- * مهما كان عددها. نقيّةٌ (تأخذ now/tz وسيطين) فتسهل اختبارُها؛ الافتراضُ
- * الآن + config.timezone كي يستهلكها schedules.ts بلا وسطاء.
+ * مهما كان عددها. نعتمد فرديّةَ (زوجي/فردي) عددِ الأيّام منذ حقبة يونكس
+ * عبر dayNumberIn من telegram-broadcast-kit (تتبدّل كلَّ يومٍ بلا «قفزة»
+ * عند رأس السنة، بخلاف يوم السنة). نقيّةٌ (تأخذ now/tz) فتسهل اختبارُها؛
+ * الافتراضُ الآن + config.timezone كي يستهلكها schedules.ts بلا وسطاء.
  */
 export function pickBedtimeContent(now: Date = new Date(), tz: string = config.timezone): string {
-  const day = epochDayIn(now, tz);
+  const day = dayNumberIn(now, tz);
   if (day % 2 === 0) return bedtimeRitual;
   if (bedtimeRituals.length === 0) return bedtimeRitual; // أمانٌ نظريّ
   return bedtimeRituals[Math.floor(day / 2) % bedtimeRituals.length];

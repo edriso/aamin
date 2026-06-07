@@ -36,6 +36,12 @@ time, a calm bedtime), everyone sees aggregate percentages, and nobody
 weekdays; on the weekend (Fri/Sat) it adds a "family time" option (11).
 Telegram allows up to 12.
 
+> The weekend "family time" poll option shows on **both Friday and
+> Saturday** (the weekend in most Arab countries) — that is on purpose,
+> not a bug. It is a separate thing from the `friday_family` message,
+> which posts on Friday only. The poll picks the day with `Intl` in
+> `TZ_NAME`, so "Saturday" is Saturday in Cairo, not on the host clock.
+
 The morning tip uses **deterministic daily rotation**: the same tip on a
 given date, never the same tip two days running, and the whole pool is
 shown before any repeat (no state needed, so it is restart-safe).
@@ -61,29 +67,34 @@ once before any expansion.
 
 ## Project layout
 
+This bot keeps only what is aamin-specific. The generic plumbing (logger,
+env loading, the bidi RTL helper, content pickers, the message-id state
+file, the `post`/`sendPoll`/`deleteMessage` wrappers, the cron `Scheduler`,
+and the `/health` server) lives in the shared **`telegram-broadcast-kit`**
+package, pinned by tag in `package.json`. To change shared code, edit the
+kit and ship a new tag (see its README), not this repo.
+
 ```
 src/
-  index.ts                entry point: config -> state -> bot -> scheduler -> health
+  index.ts                entry point: config -> state -> profile -> scheduler -> health
   config.ts               env validation (throws early; validates the IANA timezone)
-  types.ts                ScheduleDef + PollSpec types
+  types.ts                ScheduleDef + PollSpec types (PollSpec re-exported from the kit)
   schedules.ts            THE EDIT POINT: cron + what to post
-  scheduler.ts            node-cron registration + runSchedule (ring-buffer cleanup)
-  bot.ts                  grammY bot: /start + /admin_health + /admin_run
-  health.ts               /health HTTP endpoint
+  scheduler.ts            runSchedule: kind dispatch + ring-buffer cleanup (on the kit's Scheduler)
+  bot.ts                  grammY bot: /start + /admin_health + /admin_run, and self-set profile
   content/
     morningReminders.ts   the pool of morning tips (with takhreej comments)
-    fridayFamily.ts       the weekly family-time message
+    fridayFamily.ts       the weekly Friday family-time message
     poll.ts               buildParentingPoll(): the evening poll factory
+    profile.ts            the bot's About + Description text (self-set on startup)
     welcome.ts            the pinned welcome message
-  lib/
-    logger.ts             ISO-timestamped structured logger
-    post.ts               sendMessage / sendPoll / deleteMessage wrappers (no parse_mode)
-    state.ts              the message-id pointer file (replace-on-next-fire)
-    pick.ts               content pickers: random, and deterministic daily rotation
 scripts/
   send-test.ts            fire every schedule once, for a live preview
   post-welcome.ts         post or edit-in-place the pinned welcome
 ```
+
+Every `*.ts` above (except content and scripts) has a `*.test.ts` beside
+it; run them with `pnpm test`.
 
 ## Setup
 

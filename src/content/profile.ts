@@ -2,7 +2,7 @@
  * ملفُّ البوت: «About» (الوصف القصير) و«Description» (شاشة البداية قبل
  * Start). يضبطهما البوت تلقائيًّا عند كلِّ تشغيل عبر Bot API
  * (setMyShortDescription / setMyDescription في src/bot.ts)، فلا حاجة
- * لضبطهما يدويًّا في @BotFather. أبقِ هذه النصوص متوافقةً مع docs/BOTFATHER.md.
+ * لضبطهما يدويًّا في @BotFather.
  *
  * الحدود التي يفرضها تيليجرام: About ≤ ١٢٠ حرفًا، Description ≤ ٥١٢ حرفًا.
  */

@@ -62,6 +62,35 @@ describe('buildParentingPoll', () => {
     }
   });
 
+  // Pins the weekend rule across the WHOLE week, so nobody has to wonder
+  // "why did the family option show up on Saturday?" again. The family
+  // option (🌳) is a WEEKEND option: it appears on exactly Friday AND
+  // Saturday (the weekend in most Arab countries) and on no other day.
+  // This is separate from the `friday_family` weekly message, which posts
+  // on Friday only. Saturday showing the family option is intended.
+  it('shows the family option on exactly Friday and Saturday, no other day', () => {
+    const expected: Record<number, boolean> = {
+      0: false, // Sunday
+      1: false, // Monday
+      2: false, // Tuesday
+      3: false, // Wednesday
+      4: false, // Thursday
+      5: true, //  Friday
+      6: true, //  Saturday
+    };
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(SUNDAY.getTime() + d * 86_400_000);
+      const spec = buildParentingPoll(day, 'Africa/Cairo');
+      const hasFamily = spec.options.some((o) => o.includes('🌳'));
+      const weekday = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Africa/Cairo',
+        weekday: 'short',
+      }).format(day);
+      expect(hasFamily, `family option on ${weekday} should be ${expected[d]}`).toBe(expected[d]);
+      expect(spec.options).toHaveLength(expected[d] ? 11 : 10);
+    }
+  });
+
   it('keeps the affection option first and the bedtime option last', () => {
     const spec = buildParentingPoll(FRIDAY, 'Africa/Cairo');
     expect(spec.options[0]).toContain('عانقتُ');

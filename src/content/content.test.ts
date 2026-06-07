@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { morningReminders } from './morningReminders';
 import { fridayFamily } from './fridayFamily';
+import { bedtimeRitual, bedtimeRituals } from './bedtime';
 import { welcomeMessage } from './welcome';
 import { pickForDay } from 'telegram-broadcast-kit';
 
@@ -94,6 +95,29 @@ describe('fridayFamily (rotating weekly activity pool)', () => {
       friday = new Date(friday.getTime() + 7 * 86_400_000);
     }
     expect(seen.size).toBeGreaterThan(1);
+  });
+});
+
+describe('bedtime ritual', () => {
+  it('the active fixed card is non-blank and within the message limit', () => {
+    expect(bedtimeRitual.trim().length).toBeGreaterThan(0);
+    expect(bedtimeRitual.length).toBeLessThanOrEqual(MAX_MESSAGE);
+  });
+
+  // The rotating pool is the ready alternative (see content/bedtime.ts). It
+  // is not wired in by default, but guard it so the switch stays safe.
+  it('every rotating alternative is non-blank and within the message limit', () => {
+    // Daily fires step day-of-year by 1, so any size >= 2 rotates fine
+    // (the multiple-of-7 caveat is unique to the weekly Friday post).
+    expect(bedtimeRituals.length).toBeGreaterThanOrEqual(2);
+    for (const ritual of bedtimeRituals) {
+      expect(ritual.trim().length).toBeGreaterThan(0);
+      expect(ritual.length).toBeLessThanOrEqual(MAX_MESSAGE);
+    }
+  });
+
+  it('has no duplicate rotating alternatives', () => {
+    expect(new Set(bedtimeRituals).size).toBe(bedtimeRituals.length);
   });
 });
 

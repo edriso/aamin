@@ -16,17 +16,23 @@ shape: a tiny, source-driven, no-database channel broadcaster.
 All times are in `TZ_NAME` (default `Africa/Cairo`). The user-facing
 content is in clear Arabic.
 
-| Schedule           | When                | What                                                        | Notification |
-| ------------------ | ------------------- | ----------------------------------------------------------- | ------------ |
-| `morning_reminder` | every day 07:00     | one gentle parenting tip, rotated daily through a pool       | rings        |
-| `friday_family`    | Friday 09:00        | a rotating weekly "family activity" + a touch of Friday sunnah | silent    |
-| `evening_poll`     | every day 21:00     | anonymous, multi-answer poll: "what did you do today?"      | rings        |
+| Schedule           | When                | What                                                          | Notification |
+| ------------------ | ------------------- | ------------------------------------------------------------ | ------------ |
+| `morning_reminder` | every day 07:00     | one gentle parenting tip, rotated daily through a pool        | rings        |
+| `friday_family`    | Friday 09:00        | a rotating weekly "family activity" + a touch of Friday sunnah | silent     |
+| `bedtime_ritual`   | every day 21:00     | a nightly "put them to bed on dhikr + a hug" ritual card       | silent      |
+| `evening_poll`     | every day 21:30     | anonymous, multi-answer poll: "what did you do today?"        | silent       |
 
-The channel is deliberately calm: it rings **twice a day** (the morning tip
-and the evening poll). The weekly Friday nudge is an extra, so it is sent
-**silently** (Telegram `disable_notification`): it still appears in the
-channel that morning, it just does not add a third buzz. The flag is
-`silent: true` on that entry in `src/schedules.ts`.
+The channel is deliberately calm: it rings **exactly once a day** (the
+morning tip). Everything else is sent **silently** (Telegram
+`disable_notification`) — the Friday activity, the nightly bedtime ritual,
+and the evening poll all appear in the channel but add no buzz. So a
+follower gets one gentle morning ping and reads the rest whenever they open
+the app. The flag is `silent: true` on those entries in `src/schedules.ts`.
+
+The evening is a small **sequence**, not a pile: 21:00 the bedtime ritual
+(do it *with* your child as you put them down), then 21:30 the reflection
+poll (a quiet end-of-day check-in once they are asleep).
 
 The evening poll is **anonymous and multi-answer**: parents tick what
 they managed today (affection, play, listening, patience without
@@ -58,15 +64,27 @@ this week's activity stays live. One caution for maintainers: because
 Friday fires weekly, the pool size must **not** be a multiple of 7, or the
 rotation would land on the same activity every Friday. A test enforces it.
 
+The **bedtime ritual** is the channel's most on-the-nose aman moment: a
+nightly card walking the parent through the sunnah of sleep (wudu, Ayat
+al-Kursi, the Mu'awwidhat with the blow-and-wipe, the sleeping du'a) ending
+in a hug and "I love you", so the child falls asleep feeling safe. By
+default it is a **fixed card** repeated nightly (rituals form through
+repetition). A ready **rotating-pool** alternative lives in the same file
+(`src/content/bedtime.ts`) behind a documented one-line switch — flip it on
+by importing `bedtimeRituals` instead and adding `selection: 'daily'`.
+Unlike Friday, a daily fire has no multiple-of-7 caveat (it steps by one
+day, so any pool of 2+ rotates).
+
 What gets replaced vs kept:
 
 - `morning_reminder` is **kept** (`keepLast: 0`). Each tip is unique,
   evergreen content, so the channel grows a browsable, shareable library.
-- `friday_family` and `evening_poll` are **replaced** each cycle
-  (`keepLast: 1`): only "this week's family activity" and the latest poll
-  should be live, so a single copy keeps the channel clean and never
-  buries the pinned welcome. (The Friday activity rotates through a pool
-  each week — see below — but only the current one stays live.)
+- `friday_family`, `bedtime_ritual`, and `evening_poll` are **replaced**
+  each cycle (`keepLast: 1`): only "this week's family activity", tonight's
+  bedtime ritual, and the latest poll should be live, so a single copy of
+  each keeps the channel clean and never buries the pinned welcome. (The
+  Friday activity rotates weekly — see above — but only the current one
+  stays live.)
 
 ## Content authenticity
 
@@ -96,8 +114,9 @@ src/
   scheduler.ts            runSchedule: kind dispatch + ring-buffer cleanup (on the kit's Scheduler)
   bot.ts                  grammY bot: /start + /admin_health + /admin_run, and self-set profile
   content/
-    morningReminders.ts   the pool of morning tips (with takhreej comments)
-    fridayFamily.ts       the weekly Friday family-time message
+    morningReminders.ts   the morning tips: child-facing + a parent sakina strand
+    fridayFamily.ts       the rotating weekly family-activity pool
+    bedtime.ts            the nightly bedtime ritual (fixed card + rotating-pool switch)
     poll.ts               buildParentingPoll(): the evening poll factory
     profile.ts            the bot's About + Description text (self-set on startup)
     welcome.ts            the pinned welcome message
@@ -106,8 +125,9 @@ scripts/
   post-welcome.ts         post or edit-in-place the pinned welcome
 ```
 
-Every `*.ts` above (except content and scripts) has a `*.test.ts` beside
-it; run them with `pnpm test`.
+Tests live beside the code (`schedules.test.ts`, `content/poll.test.ts`,
+`content/content.test.ts`, `content/profile.test.ts`, etc.); run them with
+`pnpm test`.
 
 ## Setup
 
@@ -147,11 +167,12 @@ pnpm dev            # or pnpm start in production
 ## How it works
 
 - **No database.** All content lives in `src/content/*.ts`. The only
-  persisted state is a tiny JSON pointer file that remembers the id of the
-  latest evening poll and the latest weekly Friday message, so the
-  "replace the previous one" cleanup survives a restart. The morning tips
-  are kept, so they are never tracked. Lose the file and the bot still
-  runs; it just leaks one stale poll/message until the next cycle.
+  persisted state is a tiny JSON pointer file that remembers the id of each
+  "keep one live" post (the latest poll, the weekly Friday activity, and
+  tonight's bedtime ritual), so the "replace the previous one" cleanup
+  survives a restart. The morning tips are kept, so they are never tracked.
+  Lose the file and the bot still runs; it just leaks one stale post per
+  schedule until the next cycle.
 - **No parse_mode.** Arabic and Quran text contains characters that make
   Telegram's Markdown/HTML parser return a 400, so every send is plain
   text. Poll lines are wrapped in a Unicode bidi isolate for correct RTL

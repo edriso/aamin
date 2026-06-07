@@ -9,10 +9,11 @@ import { schedules, findSchedule } from './schedules';
  * build time instead.
  */
 describe('schedules table', () => {
-  it('has the three expected schedules', () => {
+  it('has the four expected schedules, in real-day order', () => {
     expect(schedules.map((s) => s.name)).toEqual([
       'morning_reminder',
       'friday_family',
+      'bedtime_ritual',
       'evening_poll',
     ]);
   });
@@ -47,11 +48,26 @@ describe('schedules table', () => {
     expect(findSchedule('does_not_exist')).toBeUndefined();
   });
 
-  // The documented cadence: rings twice a day (morning tip + evening poll);
-  // the weekly Friday nudge rides in silently so it adds no third buzz.
-  it('rings the morning tip and the evening poll, silences the Friday nudge', () => {
+  // The documented cadence: rings exactly ONCE a day (the morning tip).
+  // Everything else rides in silently, so a follower gets one gentle ping.
+  it('rings only the morning tip; everything else is silent', () => {
     expect(findSchedule('morning_reminder')?.silent, 'morning tip should ring').not.toBe(true);
-    expect(findSchedule('evening_poll')?.silent, 'evening poll should ring').not.toBe(true);
-    expect(findSchedule('friday_family')?.silent, 'Friday nudge should be silent').toBe(true);
+    expect(findSchedule('friday_family')?.silent, 'Friday activity should be silent').toBe(true);
+    expect(findSchedule('bedtime_ritual')?.silent, 'bedtime ritual should be silent').toBe(true);
+    expect(findSchedule('evening_poll')?.silent, 'evening poll should be silent').toBe(true);
+  });
+
+  it('the bedtime ritual is a silent nightly message that replaces itself', () => {
+    const ritual = findSchedule('bedtime_ritual');
+    expect(ritual?.kind).toBe('message');
+    expect(ritual?.silent).toBe(true);
+    // keepLast omitted => message default 1 (one live "tonight's ritual").
+    expect(ritual?.keepLast).toBeUndefined();
+    expect(ritual?.cron).toBe('0 21 * * *');
+  });
+
+  it('the evening poll follows the ritual (21:30, after 21:00)', () => {
+    expect(findSchedule('bedtime_ritual')?.cron).toBe('0 21 * * *');
+    expect(findSchedule('evening_poll')?.cron).toBe('30 21 * * *');
   });
 });

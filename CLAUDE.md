@@ -46,10 +46,21 @@ module. To change shared code, edit the kit and ship a new tag (see its README).
   `disable_notification`): it is a weekly extra on top of the daily
   morning/evening pings, so it arrives without a buzz and the channel
   stays at its two-interruptions-a-day cadence.
-- `evening_poll` (poll, daily 21:00): anonymous, multi-answer self-review,
-  built by `buildParentingPoll()` in `src/content/poll.ts`. 10 options on
-  weekdays; Fri/Sat add a family-time option (11). Telegram's max is 12
-  (Bot API 9.1+). `keepLast: 1` so only one live poll exists at a time.
+- `bedtime_ritual` (message, daily 21:00, silent): the nightly "put your
+  child to bed on dhikr + a hug so they sleep feeling safe" reminder, the
+  most literal expression of the channel's aman aim. By default a fixed
+  card (`bedtimeRitual` in `src/content/bedtime.ts`) that repeats nightly
+  (`keepLast: 1`, one live "tonight's ritual"). A ready rotating-pool
+  alternative (`bedtimeRituals`) sits in the same file behind a documented
+  one-line switch; a daily fire has no multiple-of-7 caveat (that is the
+  weekly Friday post's concern only). Bedtime adhkar are famous sahih texts
+  (Bukhari/Muslim) with takhreej in comments.
+- `evening_poll` (poll, daily 21:30, silent): anonymous, multi-answer
+  self-review (muhasaba), built by `buildParentingPoll()` in
+  `src/content/poll.ts`. 10 options on weekdays; Fri/Sat add a family-time
+  option (11). Telegram's max is 12 (Bot API 9.1+). `keepLast: 1` so only
+  one live poll exists at a time. Fires 30 min after the ritual so the two
+  evening posts are a sequence (do-the-ritual, then reflect), not a pile.
 
 `schedules.ts` is THE EDIT POINT: one cron rule + what to post per entry.
 
@@ -68,10 +79,12 @@ module. To change shared code, edit the kit and ship a new tag (see its README).
 
 - No `parse_mode` on any send (Arabic/Quran text 400s Markdown/HTML).
   Poll lines go through `rtlIsolate()` in `lib/post.ts` for RTL rendering.
-- Notification cadence: rings twice a day (morning tip + evening poll). A
-  schedule may set `silent: true` (only `friday_family` does today); the
-  scheduler passes it to `lib/post.ts`, which adds `disable_notification`.
-  A schedules test pins which posts ring vs ride in silently.
+- Notification cadence: rings exactly ONCE a day (the morning tip).
+  Everything else sets `silent: true` (the Friday activity, the nightly
+  bedtime ritual, and the evening poll); the scheduler passes it to the
+  kit's `post`/`sendPoll`, which add `disable_notification`. So a follower
+  gets one gentle morning ping and reads the rest whenever they open the
+  app. A schedules test pins that only the morning tip rings.
 - All day/time logic (cron, the morning tip's daily rotation, the poll's
   weekend detection) uses `Intl` against `config.timezone`, never the host
   clock. `config.ts` validates the IANA timezone and throws at startup on

@@ -1,4 +1,4 @@
-import { morningReminders } from './content/morningReminders';
+import { pickMorningReminder } from './content/morningReminders';
 import { fridayFamily } from './content/fridayFamily';
 import { pickBedtimeContent } from './content/bedtime';
 import { buildParentingPoll } from './content/poll';
@@ -38,11 +38,14 @@ export const schedules: ScheduleDef[] = [
     kind: 'message',
     // 07:00 Cairo: a calm start to the day, before school/work rush.
     cron: '0 7 * * *',
-    content: morningReminders,
-    // Deterministic day-of-year rotation: the same tip on a given date,
-    // never the same tip two days running, and the whole pool is shown
-    // before any repeat (see telegram-broadcast-kit pickForDay).
-    selection: 'daily',
+    // A factory (like the bedtime ritual), not a plain pool + selection,
+    // so the pick can use a sturdier equation than the kit's pickForDay:
+    // it keys on the epoch-day count (no New-Year stutter) and a fixed
+    // deterministic shuffle, so every tip shows once per pool-length days
+    // (repeats are always a full pool apart, never "a couple of days"),
+    // and ADDING tips reshuffles every slot instead of pinning the old
+    // ones to nearby dates. See pickMorningReminder for the full rationale.
+    content: () => pickMorningReminder(),
     // Keep every tip live (do NOT replace-on-next-fire). Each morning tip
     // is unique, evergreen content, so the channel grows a browsable,
     // shareable library instead of throwing yesterday's away. Only the

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { morningReminders } from './morningReminders';
+import { morningReminders, pickMorningReminder } from './morningReminders';
 import { fridayFamily } from './fridayFamily';
 import { bedtimeRitual, bedtimeRituals, pickBedtimeContent } from './bedtime';
 import { welcomeMessage } from './welcome';
@@ -50,15 +50,54 @@ describe('morningReminders', () => {
     expect(sakinaTips.length).toBeGreaterThanOrEqual(6);
   });
 
-  it('daily rotation never shows the same tip on consecutive days (over a full year)', () => {
-    let day = new Date('2026-01-01T07:00:00Z');
-    for (let i = 0; i < 366; i++) {
-      const next = new Date(day.getTime() + 86_400_000);
-      expect(pickForDay(morningReminders, day, 'Africa/Cairo')).not.toBe(
-        pickForDay(morningReminders, next, 'Africa/Cairo'),
-      );
-      day = next;
+  // The morning pick is pickMorningReminder (a fixed deterministic shuffle
+  // keyed by the epoch-day count), NOT the kit's pickForDay. These tests pin
+  // the properties that fix the "same tip two days apart" bug: even spacing,
+  // full coverage, no consecutive repeat, year-boundary safety, and the
+  // edit-gentleness that plain (day-of-year) % n lacked.
+  const TZ = 'Africa/Cairo';
+  // Noon UTC stays the same calendar day in Cairo, so day(i) is a clean run
+  // of consecutive days.
+  const day = (i: number) => new Date(Date.UTC(2026, 0, 1, 12, 0, 0) + i * 86_400_000);
+
+  it('never shows the same tip on consecutive days (across a year, including New Year)', () => {
+    // Start before 2026 so the Dec 31 -> Jan 1 boundary is covered: the old
+    // day-of-year rotation could stutter there; the epoch-day count cannot.
+    for (let i = -10; i < 400; i++) {
+      expect(pickMorningReminder(day(i), TZ)).not.toBe(pickMorningReminder(day(i + 1), TZ));
     }
+  });
+
+  it('shows every tip exactly once in any window of pool-length days', () => {
+    const n = morningReminders.length;
+    // Try a few different starting offsets, including across the year edge.
+    for (const start of [-5, 0, 17, 360]) {
+      const seen = new Set<string>();
+      for (let i = 0; i < n; i++) seen.add(pickMorningReminder(day(start + i), TZ) as string);
+      expect(seen.size).toBe(n); // a full, repeat-free pass over the whole pool
+    }
+  });
+
+  it('keeps repeats a full pool apart (never the "a couple of days" bug)', () => {
+    const n = morningReminders.length;
+    const lastSeen = new Map<string, number>();
+    let minGap = Infinity;
+    for (let i = 0; i < n * 3; i++) {
+      const tip = pickMorningReminder(day(i), TZ) as string;
+      if (lastSeen.has(tip)) minGap = Math.min(minGap, i - (lastSeen.get(tip) as number));
+      lastSeen.set(tip, i);
+    }
+    // Every tip recurs on an exact pool-length cycle, so the closest any two
+    // identical picks ever fall is n days apart.
+    expect(minGap).toBe(n);
+  });
+
+  it('is deterministic and timezone-pure (same day+tz => same tip)', () => {
+    // Different Date instants that are the same calendar day in Cairo must
+    // resolve to the same tip (the pick keys on the day, not the clock time).
+    const morning = new Date('2026-06-07T05:00:00Z'); // 07:00 Cairo
+    const evening = new Date('2026-06-07T19:00:00Z'); // 21:00 Cairo, same day
+    expect(pickMorningReminder(morning, TZ)).toBe(pickMorningReminder(evening, TZ));
   });
 });
 

@@ -35,13 +35,20 @@ describe('schedules table', () => {
     expect(poll?.keepLast).toBe(1);
   });
 
-  it('the morning reminder keeps every tip (keepLast 0) and rotates daily', () => {
+  it('the morning reminder keeps every tip (keepLast 0) and picks via a factory', () => {
     const morning = findSchedule('morning_reminder');
     expect(morning?.kind).toBe('message');
     // keepLast 0 => unique tips are never deleted (a growing library).
     expect(morning?.keepLast).toBe(0);
-    // daily rotation => a follower never sees yesterday's tip again today.
-    expect(morning?.kind === 'message' && morning.selection).toBe('daily');
+    // The daily rotation is now a factory (pickMorningReminder), not a plain
+    // pool + selection: it keys on the epoch-day count and a fixed shuffle so
+    // repeats stay a full pool apart and adding tips does not pull a repeat
+    // close (the rotation properties are pinned in content.test.ts). The
+    // factory also returns a non-empty string for a real day.
+    expect(morning?.kind === 'message' && typeof morning.content).toBe('function');
+    if (morning?.kind === 'message' && typeof morning.content === 'function') {
+      expect((morning.content() ?? '').length).toBeGreaterThan(0);
+    }
   });
 
   it('findSchedule returns undefined for an unknown name', () => {

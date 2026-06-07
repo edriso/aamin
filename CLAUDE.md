@@ -27,13 +27,31 @@ module. To change shared code, edit the kit and ship a new tag (see its README).
 ## What it posts (all times in TZ_NAME, default Africa/Cairo)
 
 - `morning_reminder` (message, daily 07:00): one gentle parenting tip from
-  `src/content/morningReminders.ts`, chosen by deterministic daily
-  rotation (`selection: 'daily'`, no consecutive repeats). `keepLast: 0`
+  `src/content/morningReminders.ts`. The pick is a **factory**
+  (`content: () => pickMorningReminder()`), NOT a plain pool +
+  `selection: 'daily'`, because the kit's `pickForDay` keys on
+  `(day-of-year) % poolSize` and that has two flaws: it stutters at the
+  New Year (day-of-year resets but the pool size rarely divides 365), and
+  it pulls a repeat CLOSE whenever the pool size changes — appended tips
+  keep their low indices, so a tip shown days ago under the smaller pool
+  can reappear almost immediately under the larger one (this is exactly
+  what caused "أصغِ إليه" to repeat two days apart after the sakina strand
+  was added). `pickMorningReminder` fixes both: it keys on the **epoch-day
+  count** (`dayNumberIn`, monotonic, no New-Year reset) and a **fixed
+  deterministic shuffle** of the index space, so every tip shows exactly
+  once every `poolSize` days (repeats are ALWAYS a full pool apart, never
+  "a couple of days"), no two consecutive days repeat, the whole pool is
+  covered before any repeat, and adding tips RESHUFFLES every slot instead
+  of pinning the old ones to nearby dates. It is pure (takes `now`/`tz`)
+  and restart-safe (no state). `content.test.ts` pins the spacing,
+  coverage, no-consecutive, and year-boundary properties. `keepLast: 0`
   so every unique tip is kept as a growing library, never deleted. The
   pool has two voices: most tips face the child (what to do with them),
   and a "sakina" strand (a labelled section at the end of the file) faces
   the parent's own heart, because a calm parent is the child's first
-  aman. A test pins that the sakina strand stays present.
+  aman. A test pins that the sakina strand stays present. The pool size is
+  free (no multiple-of-7 constraint — that only applies to the WEEKLY
+  Friday pool); a bigger pool simply widens the gap between repeats.
 - `friday_family` (message, Friday 09:00): a weekly family-time nudge from
   a rotating pool in `src/content/fridayFamily.ts` — each Friday is one
   "family activity" (mostly kind-speech and du'a games between siblings)
@@ -77,6 +95,13 @@ module. To change shared code, edit the kit and ship a new tag (see its README).
   clause of the age-ten prayer hadith. The channel's whole tone is mercy.
 - Keep the wording warm, MSA, and tie each tip back to the child's sense
   of security (aman).
+- Emoji: each tip/activity opens with ONE leading emoji (the poll keeps
+  its emoji at the END of the option, see below). Pick calm, family- and
+  faith-friendly emojis that render well on Telegram (hearts, nature,
+  mosque/moon, hands), keep them distinct within a pool (no duplicate
+  leading emoji in `morningReminders.ts`), and avoid harsh or off-tone
+  signs (e.g. a red 🚫). **Do NOT use the 🌈 (rainbow) emoji anywhere** —
+  it carries connotations that do not fit the channel.
 - A trusted scholar should review the content once before any expansion.
 
 ## Conventions specific to this bot
@@ -97,10 +122,13 @@ module. To change shared code, edit the kit and ship a new tag (see its README).
   2..12 options (Bot API 9.1+ raised the max from 10 to 12), each <=98 (we
   leave 2 chars of headroom for the bidi isolate). Keep the emoji at the
   END of each option (a leading emoji collides with the vote percentage).
-- The morning pool rotates deterministically by day-of-year
-  (`pickForDay`), so a follower never sees yesterday's tip again today and
-  the whole pool is covered before any repeat. Keep the pool large enough
-  (>=28); a test asserts this and that consecutive days never collide.
+- The morning pool rotates via `pickMorningReminder` (epoch-day count +
+  fixed deterministic shuffle, see the `morning_reminder` notes above), so
+  a follower never sees yesterday's tip again today, the whole pool is
+  covered before any repeat, repeats stay a full pool apart, and adding
+  tips never pulls a repeat close. Keep the pool large enough (>=28); a
+  test asserts this and that consecutive days never collide. (The kit's
+  `pickForDay` is still used for the WEEKLY Friday pool.)
 - The bot self-sets its About (<=120 chars) and Description (<=512) on
   startup via the Bot API (`setBotProfile` in `bot.ts`, text in
   `content/profile.ts`). These are awaited before the scheduler, so an

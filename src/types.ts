@@ -55,14 +55,16 @@ interface BaseSchedule {
  * Posts a text message. `content` may be:
  *   - a fixed string,
  *   - a pool (array), one entry chosen each fire per `selection`, or
- *   - a factory `() => string` called at fire time for custom per-day
- *     logic (mirrors `PollSchedule.poll`). A factory decides the exact
- *     text itself, so `selection` is ignored for it. Used by the bedtime
- *     ritual to alternate a fixed card with a rotating pool day by day.
+ *   - a factory `() => string | null` called at fire time for custom
+ *     per-day logic (mirrors `PollSchedule.poll`). A factory decides the
+ *     exact text itself, so `selection` is ignored for it; returning null
+ *     (or an empty string) means "nothing to post this fire", and the tick
+ *     is skipped. Used by the bedtime ritual (alternates a fixed card with
+ *     a rotating pool) and the morning reminder (pickMorningReminder).
  */
 export interface MessageSchedule extends BaseSchedule {
   kind: 'message';
-  content: string | readonly string[] | (() => string);
+  content: string | readonly string[] | (() => string | null);
   /**
    * How an array `content` is chosen each fire (ignored for a fixed string
    * or a factory):

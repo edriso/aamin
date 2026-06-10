@@ -91,6 +91,23 @@ module. To change shared code, edit the kit and ship a new tag (see its README).
 - Anything attributed to the Prophet ﷺ must be **sahih or hasan**. Put
   the takhreej (source + grading) in a comment above the item, as the
   existing content does. When unsure, verify before adding.
+- **Verbatim rule for quotes.** When hadith text sits inside guillemets
+  («...») AND carries an attribution such as "rawahu al-Bukhari", the
+  words between the guillemets MUST be the exact wording of that
+  narration. Verify them letter-for-letter against a trusted source
+  (sunnah.com, dorar.net) before committing. The small things silently
+  break it: the person (second vs third), a dropped clitic (the dua is
+  "wa-bi-nabiyyik", not "wa-nabiyyik"), a missing word (the smile hadith
+  ends "laka sadaqa"), or quoting one collection's lafz while citing two.
+- If you only want the MEANING, or the exact words read awkwardly in
+  context, paraphrase it WITHOUT guillemets. An unquoted sentence may
+  still carry a source pointer, because the guillemets are what claim
+  "these are the hadith's exact words". Two such paraphrases already live
+  in `bedtime.ts`: the Ayat al-Kursi protection clause (Bukhari 2311 is
+  second-person, "lan yazala alayka... wa-la yaqrabaka... hatta tusbih";
+  we state the meaning in the third person, unquoted, with the original
+  lafz kept in a takhreej comment), and the nafth/mu'awwidhat done THREE
+  times ("thalatha marrat", Bukhari 5017) — keep that detail.
 - Avoid weak (da'if) material as proof, and avoid the disputed "beating"
   clause of the age-ten prayer hadith. The channel's whole tone is mercy.
 - Keep the wording warm, MSA, and tie each tip back to the child's sense

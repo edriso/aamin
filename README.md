@@ -98,6 +98,14 @@ clause of the prayer hadith) is deliberately left out, in keeping with
 the channel's tone of mercy. Have a trusted scholar review the content
 once before any expansion.
 
+When a hadith is quoted between «...» with an attribution like `(رواه
+البخاري)`, the words inside the guillemets are the **exact** narration,
+checked letter-for-letter against a trusted source. When only the meaning
+is conveyed (or the literal wording would read awkwardly in context), the
+sentence is paraphrased **without** «...» so it never poses as a verbatim
+quote. See `CLAUDE.md` for the full rule and the worked examples (the
+Ayat al-Kursi protection clause, and the three-times nafth at bedtime).
+
 ## Project layout
 
 This bot keeps only what is aamin-specific. The generic plumbing (logger,

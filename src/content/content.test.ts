@@ -161,6 +161,35 @@ describe('bedtime ritual (alternates a fixed card with a rotating pool)', () => 
     expect(new Set(bedtimeRituals).size).toBe(bedtimeRituals.length);
   });
 
+  // Regression guards for hadith-accuracy fixes (see CLAUDE.md verbatim rule):
+  const allBedtime = [bedtimeRitual, ...bedtimeRituals];
+
+  // The nafth/mu'awwidhat sunnah is done THREE times (Bukhari 5017). Both the
+  // fixed card and the rotating mu'awwidhat item must keep that detail.
+  it('keeps the nafth done three times (ثلاث مرّات)', () => {
+    const nafthTexts = allBedtime.filter((t) => t.includes('انفُث'));
+    expect(nafthTexts.length).toBeGreaterThanOrEqual(2);
+    for (const t of nafthTexts) expect(t).toContain('ثلاثَ مرّات');
+  });
+
+  // The sleeping du'a is "...وبنبيّك الذي أرسلت" (with the ب, Bukhari 6311),
+  // never "ونبيّك الذي أرسلت".
+  it('uses the exact sleeping-dua wording وبنبيّك', () => {
+    const dua = bedtimeRituals.find((t) => t.includes('أسلمتُ نفسي إليك'));
+    expect(dua).toBeDefined();
+    expect(dua).toContain('وبنبيّك الذي أرسلت');
+    expect(dua).not.toContain('ونبيّك الذي أرسلت');
+  });
+
+  // Bukhari 2311's protection clause is second-person; we render the meaning
+  // in the third person and must NOT wrap it in «...» (that would claim the
+  // altered text is the verbatim narration).
+  it('does not present the Ayat al-Kursi paraphrase as a verbatim quote', () => {
+    for (const t of allBedtime) {
+      expect(t).not.toContain('«لم يزل عليه من الله حافظ');
+    }
+  });
+
   // The alternation contract: each night is EITHER the fixed card OR a pool
   // item (never both, never neither), and the kind flips every single day.
   it('alternates the fixed card and a pool item, flipping every day', () => {

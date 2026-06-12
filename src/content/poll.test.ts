@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildParentingPoll } from './poll';
+import { dayNumberIn } from 'telegram-broadcast-kit';
+import { buildParentingPoll, pollFiresTonight } from './poll';
 
 // Telegram poll limits (Bot API 9.1+, July 2025: max raised 10 -> 12).
 const MAX_QUESTION = 300;
@@ -111,5 +112,38 @@ describe('buildParentingPoll', () => {
     );
     expect(angerOpt).toBeDefined();
     expect(angerOpt).toContain('أُهِنهم');
+  });
+});
+
+describe('pollFiresTonight (every-other-night cadence)', () => {
+  const TZ = 'Africa/Cairo';
+
+  it('fires on the even epoch-nights and skips the odd ones', () => {
+    // Walk a run of consecutive days and assert the fire flag tracks the
+    // parity of the epoch-day count exactly.
+    for (let d = 0; d < 14; d++) {
+      const day = new Date(SUNDAY.getTime() + d * 86_400_000);
+      const expected = dayNumberIn(day, TZ) % 2 === 0;
+      expect(pollFiresTonight(day, TZ)).toBe(expected);
+    }
+  });
+
+  it('alternates every single night (never two fires or two skips in a row)', () => {
+    let prev = pollFiresTonight(SUNDAY, TZ);
+    for (let d = 1; d < 30; d++) {
+      const day = new Date(SUNDAY.getTime() + d * 86_400_000);
+      const now = pollFiresTonight(day, TZ);
+      expect(now, `night ${d} should differ from night ${d - 1}`).not.toBe(prev);
+      prev = now;
+    }
+  });
+
+  it('fires on exactly half the nights over a fortnight', () => {
+    let fires = 0;
+    for (let d = 0; d < 14; d++) {
+      const day = new Date(SUNDAY.getTime() + d * 86_400_000);
+      if (pollFiresTonight(day, TZ)) fires++;
+    }
+    expect(fires).toBe(7);
   });
 });

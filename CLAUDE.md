@@ -77,12 +77,64 @@ module. To change shared code, edit the kit and ship a new tag (see its README).
   so it fully rotates at any size. `keepLast: 1` => one live "tonight's
   ritual". Bedtime adhkar are famous sahih texts (Bukhari/Muslim) with
   takhreej in comments.
-- `evening_poll` (poll, daily 21:30, silent): anonymous, multi-answer
-  self-review (muhasaba), built by `buildParentingPoll()` in
+- `evening_poll` (poll, every OTHER night 21:30, silent): anonymous,
+  multi-answer self-review (muhasaba), built by `buildParentingPoll()` in
   `src/content/poll.ts`. 10 options on weekdays; Fri/Sat add a family-time
   option (11). Telegram's max is 12 (Bot API 9.1+). `keepLast: 1` so only
-  one live poll exists at a time. Fires 30 min after the ritual so the two
-  evening posts are a sequence (do-the-ritual, then reflect), not a pile.
+  one live poll exists at a time. The cron still fires at 21:30 daily, but
+  a `skipIf` (`(now) => !pollFiresTonight(now)`) posts only every other
+  night: a muhasaba every single evening grows heavy and loses its weight,
+  so alternating keeps it a pause worth waiting for. `pollFiresTonight`
+  (in `poll.ts`) is pure (takes `now`/`tz`) and keys on **epoch-day
+  parity** via the kit's `dayNumberIn` (no New-Year stutter, like the
+  bedtime alternation), firing on the EVEN nights — the same nights the
+  fixed bedtime card shows. So the anchor night pairs the full ritual card
+  (21:00) with the full reflection (21:30), and the off night stays light
+  (a rotating bedtime item, no poll). A skipped night leaves the ring
+  buffer untouched, so the previous poll simply stays until the next one
+  replaces it. `poll.test.ts` pins the parity, strict alternation, and
+  half-the-nights count; `schedules.test.ts` pins that the guard matches
+  `pollFiresTonight` and that only the poll skips nights. Fires 30 min
+  after the ritual so the two evening posts are a sequence (do-the-ritual,
+  then reflect), not a pile.
+
+### Seasonal tracks (Hijri-gated, all silent)
+
+Three tracks wake up only in their Islamic season and lie dormant the rest
+of the year. Detection lives in `src/seasons.ts`: pure functions that read
+the **Umm al-Qura** Hijri date straight from `Intl`
+(`'en-US-u-ca-islamic-umalqura'`), the same `Intl`-against-`config.timezone`
+convention the rest of the bot uses (no library, restart-safe, unit-testable
+by passing `now`/`tz`). Each track is a normal `schedules.ts` entry whose
+`skipIf` returns true OUTSIDE its window, so the cron runs daily and the
+guard decides whether to post. ⚠️ Umm al-Qura is _calculated_; a local
+moon-sighting can differ by a day, so a season edge may land one day off —
+documented on purpose; the admin can nudge with `/admin_run <name> force`.
+
+- `ramadan_daily` (message, daily 16:30 Cairo, Ramadan only, silent): a
+  pre-iftar parenting nudge. A new afternoon slot (not 07:00) so it
+  coexists with the morning tip. `content: () => pickRamadanContent()` (a
+  factory, like bedtime): it keys on the Hijri **day-of-month**, rotating a
+  general pool for days 1–20 and switching to a **last-ten-nights** pool
+  from the 21st (Laylat al-Qadr, qiyam), so content arrives in its season.
+  See `content/ramadan.ts`. `keepLast` default 1.
+- `dhulhijjah_daily` (message, daily 16:30, the blessed ten 1–9 only,
+  silent): the best days of the year (takbir, dhikr, Ibrahim & Ismail),
+  with an **Arafah** card on the 9th (`pickDhulHijjahContent` special-cases
+  it). The 10th is Eid (owned by `eid_greeting`). Shares the 16:30 slot
+  with Ramadan — safe because the two Hijri months never overlap (a
+  schedules test pins the mutual exclusivity). See `content/dhulHijjah.ts`.
+- `eid_greeting` (message, daily 08:00, the first day of each Eid only,
+  silent): one warm card per Eid — `pickEidContent` returns the al-Fitr (1
+  Shawwal) or al-Adha (10 Dhul-Hijjah) card by Hijri month. See
+  `content/eid.ts`.
+
+All seasonal content was authored from a **verified evidence pack** (sahih/
+hasan only, exact takhreej in comments) and deliberately avoids the flagged
+traps: the weak «اللهم لك صمت» iftar dua, the «وخير سحوركم التمر» suhoor
+addition, the unestablished «كريم» in the Laylat al-Qadr dua, and the
+«واضربوهم» clause; the «ما من أيام…» best-days lafz is Tirmidhi's (we quote
+Bukhari's actual lafz instead). `content/seasonContent.test.ts` pins these.
 
 `schedules.ts` is THE EDIT POINT: one cron rule + what to post per entry.
 
@@ -116,9 +168,24 @@ module. To change shared code, edit the kit and ship a new tag (see its README).
   its emoji at the END of the option, see below). Pick calm, family- and
   faith-friendly emojis that render well on Telegram (hearts, nature,
   mosque/moon, hands), keep them distinct within a pool (no duplicate
-  leading emoji in `morningReminders.ts`), and avoid harsh or off-tone
+  leading emoji in `morningReminders.ts` or any seasonal pool — a test pins
+  distinctness for the seasonal pools), and avoid harsh or off-tone
   signs (e.g. a red 🚫). **Do NOT use the 🌈 (rainbow) emoji anywhere** —
-  it carries connotations that do not fit the channel.
+  it carries connotations that do not fit the channel. Also avoid emojis
+  that read as another faith's symbol, a vigil, or mourning: the candle
+  🕯️ (a church/memorial-vigil candle) and the oil lamp 🪔 (Diwali) are
+  out. For a luminous night (e.g. Laylat al-Qadr) use 🌌/🌙, not a candle.
+- Never frame dhikr, Quran, or takbir as a song or performance. Words like
+  «نشيد/أنشودة/أغنية/لحن» applied to adhkar are off-tone — scholars (e.g.
+  Ibn Baz) discourage rendering Allah's words as anasheed. For audible
+  takbir use the sunnah framing of **الجهر** (raising the voice): «ارفعوا
+  أصواتكم بالتكبير» / «اجهروا به», not «اجعلوها نشيدًا». (The «غناء
+  جاريتين» in `eid.ts` is a verbatim hadith reference, not our framing —
+  leave it.)
+- Food examples should be healthy. When a tip mentions food (a treat, a
+  gift, a snack), prefer wholesome options (fruit, dates, a shared meal)
+  over sweets/candy («حلوى»); the channel encourages healthy habits for
+  children, so a gift between siblings is «فاكهةً», not «قطعةَ حلوى».
 - A trusted scholar should review the content once before any expansion.
 
 ## Conventions specific to this bot
@@ -157,6 +224,9 @@ module. To change shared code, edit the kit and ship a new tag (see its README).
 ## Commands
 
 Standard set: `dev`, `build`, `start`, `typecheck`, `test`, `format`,
-`check`, plus `send-test` (preview a full day in the channel) and
-`post-welcome` (post/edit the pinned welcome). See README for the
+`check`, plus `send-test` (preview a full day in the channel; it passes
+`force: true` so the season-gated tracks preview too) and `post-welcome`
+(post/edit the pinned welcome). In a DM, `/admin_run <name> [force]` fires
+one schedule via the real path; `force` bypasses a `skipIf` (a season gate
+or the poll's off-night) for an on-demand preview. See README for the
 first-run order.

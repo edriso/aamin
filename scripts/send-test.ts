@@ -65,9 +65,12 @@ async function main() {
 
   // Bail on the first failure; once one post succeeds the channel is
   // proven postable, so later failures are reported but don't halt.
+  // force: true so the season-gated tracks (Ramadan, Dhul-Hijjah, Eid)
+  // preview too, even when run out of season. Their content factories use
+  // the real date, so out of season they just show that pool's first item.
   let postedAtLeastOne = false;
   for (const def of schedules) {
-    const id = await runSchedule(bot, def);
+    const id = await runSchedule(bot, def, { force: true });
     console.log(`  ${def.name}: ${id === null ? 'FAILED' : 'message ' + id}`);
     if (id === null) {
       if (!postedAtLeastOne) {

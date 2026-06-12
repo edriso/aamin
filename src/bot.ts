@@ -77,9 +77,20 @@ bot.command('admin_health', async (ctx) => {
 bot.command('admin_run', async (ctx) => {
   if (!isAdmin(ctx)) return;
   const raw = ctx.message?.text ?? '';
-  const name = raw.replace(/^\/admin_run(@\S+)?\s*/, '').trim();
+  const args = raw
+    .replace(/^\/admin_run(@\S+)?\s*/, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const name = args[0] ?? '';
+  // `force` bypasses a schedule's skipIf, so an admin can preview a
+  // season-gated post (Ramadan/Dhul-Hijjah/Eid) or the every-other-night
+  // poll on an off night. See runSchedule.
+  const force = args.slice(1).includes('force');
   if (!name) {
-    await ctx.reply(`Usage: /admin_run <schedule-name>\n\nSchedules:\n${scheduleNameList()}`);
+    await ctx.reply(
+      `Usage: /admin_run <schedule-name> [force]\n\nSchedules:\n${scheduleNameList()}`,
+    );
     return;
   }
   const def = findSchedule(name);
@@ -88,14 +99,21 @@ bot.command('admin_run', async (ctx) => {
     return;
   }
   try {
-    const messageId = await runSchedule(bot, def);
+    const messageId = await runSchedule(bot, def, { force });
     if (messageId === null) {
-      await ctx.reply(
-        `"${name}" did not post.\n` +
-          'Either its content was empty, or the Telegram send failed, ' +
-          'most often because the bot is not a channel admin with the "Post ' +
-          'messages" permission. Check the process logs for the exact error.',
-      );
+      if (!force && def.skipIf?.(new Date())) {
+        await ctx.reply(
+          `"${name}" is out of season (or off-night) right now, so its guard ` +
+            `skipped it. To preview it anyway:\n  /admin_run ${name} force`,
+        );
+      } else {
+        await ctx.reply(
+          `"${name}" did not post.\n` +
+            'Either its content was empty, or the Telegram send failed, ' +
+            'most often because the bot is not a channel admin with the "Post ' +
+            'messages" permission. Check the process logs for the exact error.',
+        );
+      }
     } else {
       await ctx.reply(`Posted "${name}" to the channel (message ${messageId}).`);
     }

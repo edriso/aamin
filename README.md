@@ -21,7 +21,10 @@ content is in clear Arabic.
 | `morning_reminder` | every day 07:00     | one gentle parenting tip, rotated daily through a pool        | rings        |
 | `friday_family`    | Friday 09:00        | a rotating weekly "family activity" + a touch of Friday sunnah | silent     |
 | `bedtime_ritual`   | every day 21:00     | a nightly "put them to bed on dhikr + a hug" ritual card       | silent      |
-| `evening_poll`     | every day 21:30     | anonymous, multi-answer poll: "what did you do today?"        | silent       |
+| `evening_poll`     | **every other** night 21:30 | anonymous, multi-answer poll: "what did you do today?" | silent     |
+| `ramadan_daily`    | Ramadan, 16:30      | a pre-iftar parenting nudge (in season only)                  | silent       |
+| `dhulhijjah_daily` | Dhul-Hijjah 1–9, 16:30 | a "best ten days" nudge, incl. an Arafah card on the 9th   | silent       |
+| `eid_greeting`     | Eid morning 08:00   | a warm Eid greeting (al-Fitr & al-Adha)                       | silent       |
 
 The channel is deliberately calm: it rings **exactly once a day** (the
 morning tip). Everything else is sent **silently** (Telegram
@@ -32,7 +35,13 @@ the app. The flag is `silent: true` on those entries in `src/schedules.ts`.
 
 The evening is a small **sequence**, not a pile: 21:00 the bedtime ritual
 (do it *with* your child as you put them down), then 21:30 the reflection
-poll (a quiet end-of-day check-in once they are asleep).
+poll (a quiet end-of-day check-in once they are asleep). The ritual is
+nightly; the **poll is every other night** — a muhasaba every single
+evening grows heavy and loses its weight, so it alternates, landing on the
+same nights the fixed bedtime card shows (the "anchor" night pairs the full
+card with the full reflection; the off night stays light). The cron still
+fires at 21:30 daily and a small `skipIf` (`pollFiresTonight`, keyed on
+epoch-day parity) decides whether to actually post.
 
 The evening poll is **anonymous and multi-answer**: parents tick what
 they managed today (affection, play, listening, patience without
@@ -77,16 +86,43 @@ equivalent of the poll's factory. The flip uses **epoch-day parity** (not
 day-of-year) so it never stutters at the year boundary, and the pool steps
 one item per pool-night so it fully rotates at any size.
 
+### Seasonal tracks
+
+On top of the year-round posts, three tracks wake up only in their Islamic
+season and lie dormant the rest of the year. They are all **silent**, so
+the channel keeps its one ring a day, and each is gated by a pure
+Hijri-date `skipIf` in `src/seasons.ts` — which reads the **Umm al-Qura**
+calendar straight from `Intl` (no library, restart-safe), the same way the
+rest of the bot does all date math.
+
+- **Ramadan** (`ramadan_daily`, 16:30 all month): a gentle pre-iftar nudge
+  about raising kids in Ramadan — easing little ones into fasting joyfully
+  (never by force), the iftar du'a, suhoor, generosity, and, from the 21st,
+  a shift to a last-ten-nights / Laylat al-Qadr pool.
+- **The ten days of Dhul-Hijjah** (`dhulhijjah_daily`, 16:30 on days 1–9):
+  the best days of the year — takbir the kids can chant, the three little
+  words of dhikr, the story of Ibrahim and Ismail, and an **Arafah** card on
+  the 9th. (The 10th is Eid, handled below.)
+- **The two Eids** (`eid_greeting`, 08:00 on 1 Shawwal and 10 Dhul-Hijjah):
+  one warm greeting per Eid — takbir, the joy of the day (which is itself
+  sunnah), gifts and kindness to children, and the udhiyah on al-Adha.
+
+> ⚠️ Umm al-Qura is a *calculated* calendar; a local moon-sighting can
+> differ from it by a day, so a season edge may land one day off the local
+> ruling. For a gentle content channel that is acceptable; preview any year
+> with `pnpm send-test`, and if a date is off, post by hand with
+> `/admin_run <name> force` (which bypasses the season guard).
+
 What gets replaced vs kept:
 
 - `morning_reminder` is **kept** (`keepLast: 0`). Each tip is unique,
   evergreen content, so the channel grows a browsable, shareable library.
-- `friday_family`, `bedtime_ritual`, and `evening_poll` are **replaced**
-  each cycle (`keepLast: 1`): only "this week's family activity", tonight's
-  bedtime ritual, and the latest poll should be live, so a single copy of
-  each keeps the channel clean and never buries the pinned welcome. (The
-  Friday activity rotates weekly — see above — but only the current one
-  stays live.)
+- `friday_family`, `bedtime_ritual`, `evening_poll`, and the three seasonal
+  tracks are **replaced** each cycle (`keepLast: 1`): only "this week's
+  family activity", tonight's bedtime ritual, the latest poll, and the
+  current seasonal post should be live, so a single copy of each keeps the
+  channel clean and never buries the pinned welcome. (The Friday activity
+  rotates weekly — see above — but only the current one stays live.)
 
 ## Content authenticity
 
@@ -122,12 +158,16 @@ src/
   types.ts                ScheduleDef + PollSpec types (PollSpec re-exported from the kit)
   schedules.ts            THE EDIT POINT: cron + what to post
   scheduler.ts            runSchedule: kind dispatch + ring-buffer cleanup (on the kit's Scheduler)
+  seasons.ts              pure Hijri (Umm al-Qura via Intl) season detection for the seasonal tracks
   bot.ts                  grammY bot: /start + /admin_health + /admin_run, and self-set profile
   content/
     morningReminders.ts   the morning tips: child-facing + a parent sakina strand
     fridayFamily.ts       the rotating weekly family-activity pool
     bedtime.ts            the nightly bedtime ritual (alternates a fixed card + rotating pool)
-    poll.ts               buildParentingPoll(): the evening poll factory
+    poll.ts               buildParentingPoll() + pollFiresTonight() (the every-other-night gate)
+    ramadan.ts            the Ramadan track (general pool + a last-ten-nights pool)
+    dhulHijjah.ts         the Dhul-Hijjah ten-days track (+ an Arafah card)
+    eid.ts                the two Eid greeting cards (al-Fitr, al-Adha)
     profile.ts            the bot's About + Description text (self-set on startup)
     welcome.ts            the pinned welcome message
 scripts/
@@ -135,9 +175,10 @@ scripts/
   post-welcome.ts         post or edit-in-place the pinned welcome
 ```
 
-Tests live beside the code (`schedules.test.ts`, `content/poll.test.ts`,
-`content/content.test.ts`, `content/profile.test.ts`, etc.); run them with
-`pnpm test`.
+Tests live beside the code (`schedules.test.ts`, `seasons.test.ts`,
+`content/poll.test.ts`, `content/content.test.ts`,
+`content/seasonContent.test.ts`, `content/profile.test.ts`, etc.); run them
+with `pnpm test`.
 
 ## Setup
 
@@ -162,7 +203,7 @@ pnpm typecheck      # tsc --noEmit
 pnpm test           # vitest run
 pnpm format         # prettier --write
 pnpm check          # typecheck + test
-pnpm send-test      # fire every schedule once into the channel (preview)
+pnpm send-test      # fire every schedule once into the channel (preview; forces seasonal tracks)
 pnpm post-welcome   # post the pinned welcome (pass a message_id to edit in place)
 ```
 
@@ -188,8 +229,8 @@ pnpm dev            # or pnpm start in production
   text. Poll lines are wrapped in a Unicode bidi isolate for correct RTL
   rendering next to the vote percentages.
 - **Timezone-aware.** All cron fires, the morning tip's daily rotation,
-  and the poll's weekend detection use `Intl` against `TZ_NAME`, not the
-  host clock.
+  the poll's weekend detection, and the seasonal tracks' Hijri (Umm
+  al-Qura) detection use `Intl` against `TZ_NAME`, not the host clock.
 - **Let it crash, restart clean.** Uncaught errors exit so the supervisor
   restarts from a clean state; SIGINT/SIGTERM shut down gracefully with a
   timeout cap.

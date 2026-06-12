@@ -31,9 +31,18 @@ import { config } from './config';
  * here (manual welcome, other admins) is never tracked, never deleted.
  *
  * Exported so /admin_run fires the exact same path. See CLAUDE.md.
+ *
+ * `force` bypasses the skipIf guard so a preview (send-test, or
+ * `/admin_run <name> force`) can post a season-gated entry (Ramadan, the
+ * Dhul-Hijjah ten, the Eid greeting) out of season. The real cron never
+ * forces, so the guards still hold in production.
  */
-export async function runSchedule(bot: Bot<Context>, def: ScheduleDef): Promise<number | null> {
-  if (def.skipIf?.(new Date())) {
+export async function runSchedule(
+  bot: Bot<Context>,
+  def: ScheduleDef,
+  opts: { force?: boolean } = {},
+): Promise<number | null> {
+  if (!opts.force && def.skipIf?.(new Date())) {
     // Guard says don't post this time. Leave the ring buffer untouched,
     // like a no-content fire.
     logger.info('Schedule skipped by guard', { name: def.name });

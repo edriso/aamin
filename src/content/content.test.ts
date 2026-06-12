@@ -27,6 +27,18 @@ describe('morningReminders', () => {
     expect(new Set(morningReminders).size).toBe(morningReminders.length);
   });
 
+  it('opens each tip with a distinct, on-tone leading emoji', () => {
+    // CLAUDE.md: one leading emoji per tip, distinct within the pool, and
+    // no off-tone signs (rainbow, or a church/vigil candle / Diwali lamp).
+    const leads = morningReminders.map((t) => Array.from(t.trim())[0]);
+    expect(new Set(leads).size).toBe(leads.length);
+    for (const tip of morningReminders) {
+      expect(tip).not.toContain('🌈');
+      expect(tip).not.toContain('🕯️');
+      expect(tip).not.toContain('🪔');
+    }
+  });
+
   // The pool has two voices (see morningReminders.ts header): tips aimed at
   // the child (what to DO with them) and a "sakina" strand aimed at the
   // parent's own heart (a calm parent is the child's first safety). This

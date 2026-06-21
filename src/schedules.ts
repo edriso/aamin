@@ -1,4 +1,5 @@
 import { pickMorningReminder } from './content/morningReminders';
+import { pickParentingSkill } from './content/parentingSkills';
 import { fridayFamily } from './content/fridayFamily';
 import { pickBedtimeContent } from './content/bedtime';
 import { buildParentingPoll, pollFiresTonight } from './content/poll';
@@ -27,10 +28,15 @@ export type { ScheduleDef } from './types';
  * separate notification moments, not the message count. This bot rings
  * exactly ONCE a day, the morning tip. Everything else
  * (`silent: true` => Telegram disable_notification) still appears in the
- * channel but adds no buzz: the Friday family activity, the nightly
- * bedtime ritual, the evening reflection poll, and the seasonal tracks. So
- * a follower gets one gentle morning ping and can read the rest whenever
- * they open the app.
+ * channel but adds no buzz: the daily afternoon parenting-skill nudge, the
+ * Friday family activity, the nightly bedtime ritual, the evening
+ * reflection poll, and the seasonal tracks. So a follower gets one gentle
+ * morning ping and can read the rest whenever they open the app.
+ *
+ * The afternoon parenting-skill track (16:00, daily) teaches the practical
+ * skills a trained teacher has (calm under pressure, handling mistakes,
+ * clear instructions), landing before the evening crunch where patience is
+ * tested most. See content/parentingSkills.ts.
  *
  * Seasonal tracks (all silent, all gated by a Hijri-date `skipIf`, see
  * seasons.ts): an afternoon Ramadan nudge (16:30, all of Ramadan), an
@@ -102,6 +108,32 @@ export const schedules: ScheduleDef[] = [
     // it arrives without a buzz and Friday stays at two interruptions.
     silent: true,
     description: 'نشاطُ يوم العائلة (بالتناوب الأسبوعيّ + سننُ الجمعة)، الجمعة 9:00 ص (صامت).',
+  },
+  {
+    name: 'parenting_skill',
+    kind: 'message',
+    // 16:00 Cairo: an afternoon parenting-skill nudge, just before the
+    // evening crunch (homework, dinner, the bedtime battles) where a
+    // parent's patience is tested most, so the skill arrives the same day
+    // they will use it. Sits 30 min before the seasonal 16:30 slot; they
+    // overlap only ~40 days a year (Ramadan / Dhul-Hijjah) and both ride
+    // silently, so the afternoon stays calm.
+    cron: '0 16 * * *',
+    // A factory (like the morning tip), keyed on the epoch-day count + a
+    // fixed deterministic shuffle (the shared rotation helper), so every
+    // skill shows once per pool-length days, repeats stay a full pool
+    // apart, two consecutive days never repeat, and adding skills reshuffles
+    // every slot. A large pool keeps a DAILY message from losing its weight.
+    // See content/parentingSkills.ts (pickParentingSkill).
+    content: () => pickParentingSkill(),
+    // keepLast 0: each skill is unique, evergreen content, so the channel
+    // grows a browsable, shareable library instead of deleting yesterday's
+    // (same choice as the morning tip).
+    keepLast: 0,
+    // Silent: the day already rang once (the morning tip). This is a calm
+    // afternoon read, not a second buzz.
+    silent: true,
+    description: 'مهارةٌ تربويّةٌ يوميّة (بالتناوب، لا تتكرّر مهارةُ الأمس)، كل يوم 4:00 م (صامت).',
   },
   {
     name: 'ramadan_daily',

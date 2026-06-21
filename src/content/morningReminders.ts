@@ -23,7 +23,7 @@
  * ⚠️ تبقى مراجعةُ طالب علمٍ موثوقٍ مرّةً واحدة هي الضمانُ الأخير قبل أيّ
  * توسّعٍ في المحتوى.
  */
-import { dayNumberIn } from 'telegram-broadcast-kit';
+import { pickShuffledForDay } from './rotation';
 import { config } from '../config';
 
 export const morningReminders: readonly string[] = [
@@ -317,73 +317,17 @@ export const morningReminders: readonly string[] = [
 const SHUFFLE_SEED = 0x6d6f726e; // «morn»
 
 /**
- * ترتيبٌ ثابتٌ لمؤشّرات [0, n) مُخلوطٌ خلطًا حتميًّا (mulberry32 ثم
- * Fisher–Yates). نقيّةٌ تمامًا: بلا Math.random ولا قراءةِ ساعة، فنفسُ
- * (n, seed) يُنتج دائمًا نفسَ الترتيب — مأمونٌ بعد إعادة التشغيل وسهلُ
- * الاختبار. الترتيبُ يعتمد على n، فزيادةُ المجموعة تُعيد خلطَ كلِّ
- * المواضع بدل تثبيت البنود القديمة على أماكنها (انظر pickMorningReminder).
- */
-function shuffledOrder(n: number, seed: number): number[] {
-  const order = Array.from({ length: n }, (_, i) => i);
-  let s = (seed ^ 0x9e3779b9) >>> 0;
-  const next = () => {
-    s = (s + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
-  };
-  for (let i = n - 1; i > 0; i--) {
-    const j = Math.floor(next() * (i + 1));
-    const tmp = order[i];
-    order[i] = order[j];
-    order[j] = tmp;
-  }
-  return order;
-}
-
-/**
- * يختار تذكيرَ الصباح ليومٍ بعينه.
- *
- * المعادلة (ولماذا هذه لا قسمةُ الباقي المجرّدة):
- *   n     = عددُ التذكيرات الصالحة (غير الفارغة).
- *   day   = عددُ الأيّام منذ حقبة يونكس بتوقيت البوت (dayNumberIn، لا
- *           «يومُ السنة»: عدّادٌ متّصلٌ لا يُصفَّر رأسَ السنة، فلا يحدث
- *           «قفزٌ» ولا تقاربُ تكرارٍ عند ٣١ ديسمبر/١ يناير).
- *   order = خلطٌ حتميٌّ ثابتٌ لـ [0, n) (shuffledOrder).
- *   index = day mod n.
- *   التذكير = usable[order[index]].
- *
- * ما تضمنه هذه المعادلة:
- *   • تباعُدٌ منتظم: كلُّ تذكيرٍ يظهر مرّةً كلَّ n يوم بالضبط، فالمسافةُ
- *     بين أيّ تكرارَين هي n يومًا دائمًا — لا «يومان» كما كان يحدث مع
- *     قسمة (يوم السنة) % n بعد تغيُّر حجم المجموعة.
- *   • لا تكرارَ في يومَين متتاليَين، وتُغطّى المجموعةُ كاملةً قبل أيّ
- *     إعادة (order تبديلةٌ كاملة؛ المؤشّراتُ المتتالية مواضعُ متجاورةٌ
- *     متمايزة، والالتفافُ من n−1 إلى 0 بندان مختلفان).
- *   • مأمونٌ بعد إعادة التشغيل ومتطابقٌ في كلِّ مكان (دالّةٌ نقيّةٌ من
- *     التاريخ والمجموعة، بلا حالةٍ محفوظة).
- *   • لطيفٌ عند تحرير المحتوى: الخلطُ يعتمد على n، فإضافةُ تذكيراتٍ
- *     تُعيد خلطَ كلِّ موضعٍ بدل تثبيت البنود الموجودة على أيّامها. الكودُ
- *     القديم كان يعتمد (يوم السنة) % n فحسب، فالبنودُ المُلحقة تُبقي
- *     مؤشّراتها 0..k، فيعود بندٌ عُرِض قبل أيّامٍ تحت المجموعة الأصغر
- *     فورًا تقريبًا تحت المجموعة الأكبر (وهو ما سبّب تكرارَ «أصغِ إليه»
- *     بفارق يومَين). هنا يُبعثِر تغيُّرُ الحجم المواضعَ، فالتكرارُ القريب
- *     يصبح مصادفةً نادرةً مرّةً واحدة عند التحرير، لا أمرًا بنيويًّا.
- *
- * نقيّةٌ: تأخذ now/tz فيسهل اختبارُها؛ والافتراضاتُ تربطها بـ schedules.ts
- * عبر `content: () => pickMorningReminder()`.
+ * يختار تذكيرَ الصباح ليومٍ بعينه عبر التدوير المشترك (pickShuffledForDay):
+ * يُباعِد بين أيّ تكرارَين مسافةَ المجموعة كاملةً، ولا يُكرِّر بندًا في
+ * يومَين متتاليَين، ويُغطّي المجموعةَ قبل أيّ إعادة، ولا يُقرِّب التكرارَ
+ * عند إضافة محتوًى (الخلطُ يعتمد على حجم المجموعة، فيُعاد عند تغيُّره).
+ * انظر rotation.ts لشرح المعادلة وسببِها. نقيّةٌ: تأخذ now/tz فيسهل
+ * اختبارُها؛ والافتراضاتُ تربطها بـ schedules.ts عبر
+ * `content: () => pickMorningReminder()`.
  */
 export function pickMorningReminder(
   now: Date = new Date(),
   tz: string = config.timezone,
 ): string | null {
-  const usable = morningReminders.filter((tip) => tip.trim().length > 0);
-  const n = usable.length;
-  if (n === 0) return null;
-  if (n === 1) return usable[0];
-  const day = dayNumberIn(now, tz);
-  // ((day % n) + n) % n يبقى في المدى حتى لو كان day سالبًا (نظريًّا).
-  const index = ((day % n) + n) % n;
-  const order = shuffledOrder(n, SHUFFLE_SEED);
-  return usable[order[index]];
+  return pickShuffledForDay(morningReminders, SHUFFLE_SEED, now, tz);
 }

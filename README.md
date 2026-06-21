@@ -2,7 +2,9 @@
 
 A calm Telegram channel bot for Arab Muslim parents. It posts gentle
 daily reminders that help you raise your children with love and rifq
-(gentleness) on the guidance of the Prophet ﷺ, and an anonymous evening
+(gentleness) on the guidance of the Prophet ﷺ, a daily parenting-skill
+nudge that teaches the practical things a trained teacher knows (staying
+calm, handling mistakes, clear directions), and an anonymous evening
 self-review so you can quietly check in on your day with your kids.
 
 The goal in one word is **aman** (أمان): a child who is met with mercy,
@@ -20,6 +22,7 @@ content is in clear Arabic.
 | ------------------ | ------------------- | ------------------------------------------------------------ | ------------ |
 | `morning_reminder` | every day 07:00     | one gentle parenting tip, rotated daily through a pool        | rings        |
 | `friday_family`    | Friday 09:00        | a rotating weekly "family activity" + a touch of Friday sunnah | silent     |
+| `parenting_skill`  | every day 16:00     | a teacher-trained parenting skill (calm under pressure, handling mistakes, clear directions), rotated daily | silent |
 | `bedtime_ritual`   | every day 21:00     | a nightly "put them to bed on dhikr + a hug" ritual card       | silent      |
 | `evening_poll`     | **every other** night 21:30 | anonymous, multi-answer poll: "what did you do today?" | silent     |
 | `ramadan_daily`    | Ramadan, 16:30      | a pre-iftar parenting nudge (in season only)                  | silent       |
@@ -28,10 +31,11 @@ content is in clear Arabic.
 
 The channel is deliberately calm: it rings **exactly once a day** (the
 morning tip). Everything else is sent **silently** (Telegram
-`disable_notification`) — the Friday activity, the nightly bedtime ritual,
-and the evening poll all appear in the channel but add no buzz. So a
-follower gets one gentle morning ping and reads the rest whenever they open
-the app. The flag is `silent: true` on those entries in `src/schedules.ts`.
+`disable_notification`) — the afternoon parenting-skill nudge, the Friday
+activity, the nightly bedtime ritual, and the evening poll all appear in
+the channel but add no buzz. So a follower gets one gentle morning ping and
+reads the rest whenever they open the app. The flag is `silent: true` on
+those entries in `src/schedules.ts`.
 
 The evening is a small **sequence**, not a pile: 21:00 the bedtime ritual
 (do it *with* your child as you put them down), then 21:30 the reflection
@@ -86,6 +90,24 @@ equivalent of the poll's factory. The flip uses **epoch-day parity** (not
 day-of-year) so it never stutters at the year boundary, and the pool steps
 one item per pool-night so it fully rotates at any size.
 
+The **afternoon parenting-skill nudge** (`parenting_skill`, 16:00 daily) is
+the parent-facing sibling of the morning tip. Where the morning tip is
+mostly about the child, this track teaches the **practical skills a trained
+teacher has** and most parents were never taught: regulating your own anger
+before you react, lowering your voice instead of raising it, treating a
+mistake as a chance to learn, narrating the good instead of nagging the
+bad, one calm clear instruction at a time, and repairing after you lose
+your temper. It lands at 16:00 on purpose — just before the evening crunch
+(homework, dinner, the bedtime battles) where patience is tested most, so
+the skill arrives the same day you need it. It uses the **same
+deterministic daily rotation** as the morning tip (a shared helper in
+`src/content/rotation.ts`: epoch-day count + a fixed shuffle, so a skill
+never repeats two days running and the whole pool is shown before any
+repeat), and a large pool keeps a daily message from going stale. The
+content is evidence-based teaching and parenting wisdom rather than
+hadith-attributed text, so it carries no takhreej; the one Quran quote
+(Luqman 19, on lowering the voice) is pinned verbatim by a test.
+
 ### Seasonal tracks
 
 On top of the year-round posts, three tracks wake up only in their Islamic
@@ -115,8 +137,9 @@ rest of the bot does all date math.
 
 What gets replaced vs kept:
 
-- `morning_reminder` is **kept** (`keepLast: 0`). Each tip is unique,
-  evergreen content, so the channel grows a browsable, shareable library.
+- `morning_reminder` and `parenting_skill` are **kept** (`keepLast: 0`).
+  Each tip/skill is unique, evergreen content, so the channel grows a
+  browsable, shareable library instead of deleting yesterday's.
 - `friday_family`, `bedtime_ritual`, `evening_poll`, and the three seasonal
   tracks are **replaced** each cycle (`keepLast: 1`): only "this week's
   family activity", tonight's bedtime ritual, the latest poll, and the
@@ -162,6 +185,8 @@ src/
   bot.ts                  grammY bot: /start + /admin_health + /admin_run, and self-set profile
   content/
     morningReminders.ts   the morning tips: child-facing + a parent sakina strand
+    parentingSkills.ts    the afternoon parent-skill track (teacher-trained techniques)
+    rotation.ts           shared deterministic daily rotation (epoch-day + fixed shuffle)
     fridayFamily.ts       the rotating weekly family-activity pool
     bedtime.ts            the nightly bedtime ritual (alternates a fixed card + rotating pool)
     poll.ts               buildParentingPoll() + pollFiresTonight() (the every-other-night gate)

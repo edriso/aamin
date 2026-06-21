@@ -97,6 +97,30 @@ module. To change shared code, edit the kit and ship a new tag (see its README).
   `pollFiresTonight` and that only the poll skips nights. Fires 30 min
   after the ritual so the two evening posts are a sequence (do-the-ritual,
   then reflect), not a pile.
+- `parenting_skill` (message, daily 16:00, silent): an afternoon
+  parenting-SKILL nudge — the practical things a trained teacher knows
+  (staying calm under pressure, handling a child's mistake constructively,
+  clear one-at-a-time instructions, narrating the good, repair after a
+  rupture) adapted for the home, from `src/content/parentingSkills.ts`. The
+  insight: a good primary teacher is TRAINED in classroom management and
+  anger control; most parents never were. 16:00 lands it before the evening
+  crunch (homework, dinner, bedtime battles) where patience is tested most,
+  so the skill arrives the same day it is used. It is the parent-facing
+  sibling of the child-facing morning tip, and shares its rotation: a
+  **factory** (`content: () => pickParentingSkill()`) using the SAME
+  epoch-day + fixed-shuffle helper (now factored into
+  `src/content/rotation.ts`, shared with `pickMorningReminder`), so a skill
+  recurs exactly once per pool-length days, never two days running, and
+  adding skills reshuffles every slot. `keepLast: 0` (a growing,
+  shareable library, like the morning pool). The pool is large (>= 24) on
+  purpose: a DAILY message that repeats fast loses its weight, so the size
+  keeps each skill ~a month apart. Content is evidence-based teaching/
+  parenting wisdom (NOT hadith-attributed, so no takhreej); the one Quran
+  quote is Luqman 19 (﴿وَاغْضُضْ مِن صَوْتِكَ﴾) as a general adab, pinned
+  verbatim by `parentingSkills.test.ts`, which also pins the pool size,
+  distinct leading emojis, the no-em-dash rule, the self-regulation strand,
+  and the rotation properties. Sits 30 min before the seasonal 16:30 slot;
+  they overlap only ~40 days a year and both ride silently.
 
 ### Seasonal tracks (Hijri-gated, all silent)
 

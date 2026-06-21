@@ -16,6 +16,7 @@ describe('schedules table', () => {
       'morning_reminder', // 07:00
       'eid_greeting', //     08:00 (seasonal)
       'friday_family', //    09:00
+      'parenting_skill', //  16:00
       'ramadan_daily', //    16:30 (seasonal)
       'dhulhijjah_daily', // 16:30 (seasonal)
       'bedtime_ritual', //   21:00
@@ -63,9 +64,23 @@ describe('schedules table', () => {
 
   it('the always-on posts never skip (only the poll and the seasonal tracks do)', () => {
     expect(findSchedule('morning_reminder')?.skipIf).toBeUndefined();
+    expect(findSchedule('parenting_skill')?.skipIf).toBeUndefined();
     expect(findSchedule('bedtime_ritual')?.skipIf).toBeUndefined();
     expect(findSchedule('friday_family')?.skipIf).toBeUndefined();
     expect(typeof findSchedule('evening_poll')?.skipIf).toBe('function');
+  });
+
+  it('the parenting-skill track keeps every skill (keepLast 0) and picks via a factory', () => {
+    const skill = findSchedule('parenting_skill');
+    expect(skill?.kind).toBe('message');
+    expect(skill?.cron).toBe('0 16 * * *');
+    // keepLast 0 => unique skills are never deleted (a growing library).
+    expect(skill?.keepLast).toBe(0);
+    // A factory (pickParentingSkill) that returns a non-empty string.
+    expect(skill?.kind === 'message' && typeof skill.content).toBe('function');
+    if (skill?.kind === 'message' && typeof skill.content === 'function') {
+      expect((skill.content() ?? '').length).toBeGreaterThan(0);
+    }
   });
 
   it('the morning reminder keeps every tip (keepLast 0) and picks via a factory', () => {
@@ -94,6 +109,7 @@ describe('schedules table', () => {
     expect(findSchedule('morning_reminder')?.silent, 'morning tip should ring').not.toBe(true);
     for (const name of [
       'eid_greeting',
+      'parenting_skill',
       'friday_family',
       'ramadan_daily',
       'dhulhijjah_daily',

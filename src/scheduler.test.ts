@@ -58,7 +58,10 @@ describe('runSchedule dispatch', () => {
     const { bot, sendMessage, sendPoll } = fakeBot();
     const def = findSchedule('evening_poll')!;
     expect(def.kind).toBe('poll');
-    const id = await runSchedule(bot, def);
+    // force: bypass the every-other-night skipIf so this dispatch test is
+    // deterministic regardless of which epoch-night it runs on (the skip
+    // schedule has its own tests in schedules.test.ts / poll.test.ts).
+    const id = await runSchedule(bot, def, { force: true });
     expect(id).toBe(22);
     expect(sendPoll).toHaveBeenCalledTimes(1);
     expect(sendMessage).not.toHaveBeenCalled();
@@ -269,8 +272,11 @@ describe('real schedule table is wired as intended', () => {
     const def = findSchedule('evening_poll')!;
     expect(def.keepLast).toBe(1);
 
-    await runSchedule(bot, def);
-    await runSchedule(bot, def);
+    // force: bypass the every-other-night skipIf so the keepLast cleanup is
+    // exercised deterministically on any night (force only skips the guard;
+    // the send-then-trim path it tests is identical).
+    await runSchedule(bot, def, { force: true });
+    await runSchedule(bot, def, { force: true });
 
     expect(deleteMessage).toHaveBeenCalledTimes(1);
     expect(deleteMessage.mock.calls[0][1]).toBe(9001);

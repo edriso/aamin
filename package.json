@@ -24,19 +24,20 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "dotenv": "^17.4.0",
-    "grammy": "^1.42.0",
-    "node-cron": "^4.2.1",
+    "dotenv": "^17.4.2",
+    "grammy": "^1.46.0",
+    "node-cron": "^4.6.0",
     "telegram-broadcast-kit": "github:edriso/telegram-broadcast-kit#v0.2.3",
-    "tsx": "^4.21.0"
+    "tsx": "^4.23.13"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
+    "@types/node": "^25.9.5",
     "@types/node-cron": "^3.0.11",
-    "prettier": "^3.8.3",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.6",
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

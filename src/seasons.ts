@@ -35,18 +35,25 @@ const RAMADAN = 9;
 const SHAWWAL = 10;
 const DHUL_HIJJAH = 12;
 
+let cachedTimezone: string | undefined;
+let cachedFormatter: Intl.DateTimeFormat | undefined;
+
 /**
  * The Umm al-Qura Hijri date for `now` in `tz`. Pure: reads only `Intl`,
  * no clock or host calendar. Defaults bind it to config.timezone so callers
  * (skipIf, the content pickers) can call it with no arguments.
  */
 export function hijriDate(now: Date = new Date(), tz: string = config.timezone): HijriDate {
-  const parts = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
-    timeZone: tz,
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-  }).formatToParts(now);
+  if (!cachedFormatter || cachedTimezone !== tz) {
+    cachedFormatter = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
+      timeZone: tz,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    });
+    cachedTimezone = tz;
+  }
+  const parts = cachedFormatter.formatToParts(now);
   const num = (type: Intl.DateTimeFormatPartTypes): number =>
     Number(parts.find((p) => p.type === type)?.value);
   return { year: num('year'), month: num('month'), day: num('day') };
